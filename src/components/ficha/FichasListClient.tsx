@@ -14,6 +14,8 @@ interface FichaItem {
   riesgo_metabolico: string | null
   nombre: string | null
   empresa: string | null
+  codigo?: string | null
+  tipo?: string | null
 }
 
 interface FichasListClientProps {
@@ -36,7 +38,8 @@ export function FichasListClient({ fichas }: FichasListClientProps) {
     return fichas.filter(
       (f) =>
         f.nombre?.toLowerCase().includes(q) ||
-        f.empresa?.toLowerCase().includes(q)
+        f.empresa?.toLowerCase().includes(q) ||
+        f.codigo?.toLowerCase().includes(q)
     )
   }, [fichas, search])
 
@@ -63,7 +66,7 @@ export function FichasListClient({ fichas }: FichasListClientProps) {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nombre o empresa..."
+          placeholder="Buscar por nombre, empresa o código..."
           className="w-full pl-9 pr-4 h-9 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rosa-400 bg-white placeholder:text-gray-400"
         />
       </div>
@@ -86,10 +89,11 @@ export function FichasListClient({ fichas }: FichasListClientProps) {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[520px]">
+            <table className="w-full text-sm min-w-[580px]">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Paciente</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide hidden sm:table-cell">Código</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide hidden sm:table-cell">Empresa</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide hidden md:table-cell">Fecha</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">IMC</th>
@@ -103,7 +107,17 @@ export function FichasListClient({ fichas }: FichasListClientProps) {
                     key={ficha.id}
                     className="border-b border-gray-100 hover:bg-gray-50/60 transition-colors last:border-0"
                   >
-                    <td className="px-4 py-3 font-medium text-rosa-800">{ficha.nombre ?? '—'}</td>
+                    <td className="px-4 py-3 font-medium text-rosa-800">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span>{ficha.nombre ?? '—'}</span>
+                        {ficha.tipo === 'seguimiento' && (
+                          <Badge variant="warning" className="text-xs">Seguimiento</Badge>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-rosa-400 font-mono text-xs hidden sm:table-cell">
+                      {ficha.codigo ?? '—'}
+                    </td>
                     <td className="px-4 py-3 text-rosa-500 hidden sm:table-cell">{ficha.empresa ?? '—'}</td>
                     <td className="px-4 py-3 text-rosa-500 whitespace-nowrap hidden md:table-cell">
                       {ficha.fecha_consulta ? formatDate(ficha.fecha_consulta) : '—'}

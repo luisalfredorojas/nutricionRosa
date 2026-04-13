@@ -13,6 +13,8 @@ interface TablaClientWrapperProps {
 export function TablaClientWrapper({ initialData }: TablaClientWrapperProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [empresaFilter, setEmpresaFilter] = useState('')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
 
   // Derive unique companies from data
   const empresas = Array.from(
@@ -27,7 +29,11 @@ export function TablaClientWrapper({ initialData }: TablaClientWrapperProps) {
 
     const matchesEmpresa = !empresaFilter || row.empresa === empresaFilter
 
-    return matchesSearch && matchesEmpresa
+    const rowDate = row.fecha_consulta
+    const matchesDesde = !fechaDesde || rowDate >= fechaDesde
+    const matchesHasta = !fechaHasta || rowDate <= fechaHasta
+
+    return matchesSearch && matchesEmpresa && matchesDesde && matchesHasta
   })
 
   return (
@@ -43,8 +49,8 @@ export function TablaClientWrapper({ initialData }: TablaClientWrapperProps) {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-rosa-400" />
           <input
             type="text"
@@ -66,6 +72,33 @@ export function TablaClientWrapper({ initialData }: TablaClientWrapperProps) {
             ))}
           </select>
         </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-rosa-600 font-medium whitespace-nowrap">Desde</label>
+          <input
+            type="date"
+            value={fechaDesde}
+            onChange={(e) => setFechaDesde(e.target.value)}
+            className="h-9 px-3 border border-rosa-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rosa-400 bg-white text-rosa-700"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-rosa-600 font-medium whitespace-nowrap">Hasta</label>
+          <input
+            type="date"
+            value={fechaHasta}
+            onChange={(e) => setFechaHasta(e.target.value)}
+            className="h-9 px-3 border border-rosa-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rosa-400 bg-white text-rosa-700"
+          />
+        </div>
+        {(empresaFilter || fechaDesde || fechaHasta) && (
+          <button
+            type="button"
+            onClick={() => { setEmpresaFilter(''); setFechaDesde(''); setFechaHasta('') }}
+            className="h-9 px-3 text-xs text-rosa-500 hover:text-rosa-700 border border-rosa-200 rounded-lg bg-white transition-colors"
+          >
+            Limpiar filtros
+          </button>
+        )}
       </div>
 
       <MatrizPacientes data={filteredData} globalFilter={searchQuery} />

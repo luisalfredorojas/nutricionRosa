@@ -10,7 +10,7 @@ export default async function FichasPage() {
     .from('fichas_nutricionales')
     .select(`
       id, fecha_consulta, imc, riesgo_metabolico,
-      pacientes ( nombre, empresas ( nombre ) )
+      pacientes ( nombre, codigo, empresas ( nombre ) )
     `)
     .order('fecha_consulta', { ascending: false })
     .limit(200)
@@ -18,8 +18,10 @@ export default async function FichasPage() {
   const fichas = (data ?? []).map((f) => {
     const p = f.pacientes as unknown as {
       nombre: string
+      codigo?: string | null
       empresas: { nombre: string } | null
     } | null
+    const fAny = f as any
     return {
       id: f.id,
       fecha_consulta: f.fecha_consulta,
@@ -27,6 +29,8 @@ export default async function FichasPage() {
       riesgo_metabolico: f.riesgo_metabolico,
       nombre: p?.nombre ?? null,
       empresa: p?.empresas?.nombre ?? null,
+      codigo: p?.codigo ?? null,
+      tipo: fAny.tipo ?? null,
     }
   })
 

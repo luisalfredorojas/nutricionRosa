@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { IndicadoresCalculadosDisplay } from '@/components/ficha/IndicadoresCalculados'
 import type { IndicadoresCalculados } from '@/types/ficha'
 import { formatDate, formatDecimal } from '@/lib/utils'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Plus } from 'lucide-react'
 
 interface PageProps {
   params: { id: string }
@@ -32,7 +32,27 @@ export default async function FichaDetailPage({ params }: PageProps) {
 
   if (!ficha) notFound()
 
-  const paciente = ficha.pacientes as { nombre: string; sexo: string; fecha_nacimiento: string; correo: string | null; ciudad: string | null; empresas: { nombre: string } | null } | null
+  // Fetch seguimientos (fichas where ficha_padre_id = this ficha's id)
+  const { data: seguimientos } = await supabase
+    .from('fichas_nutricionales')
+    .select('id, fecha_consulta, peso_kg, imc, dx_grasa, riesgo_metabolico')
+    .eq('ficha_padre_id' as any, params.id)
+    .order('fecha_consulta', { ascending: false })
+
+  const paciente = ficha.pacientes as {
+    nombre: string
+    sexo: string
+    fecha_nacimiento: string
+    correo: string | null
+    ciudad: string | null
+    codigo?: string | null
+    empresas: { nombre: string } | null
+  } | null
+
+  const fichaAny = ficha as any
+  const numeroFicha: string | null = fichaAny.numero_ficha ?? null
+  const tipoBadge: string | null = fichaAny.tipo ?? null
+  const pacienteCodigo: string | null = paciente?.codigo ?? null
 
   const indicadores: IndicadoresCalculados = {
     imc: ficha.imc,
@@ -56,19 +76,38 @@ export default async function FichaDetailPage({ params }: PageProps) {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-4">
         <Link href="/fichas">
           <Button variant="ghost" size="sm" className="gap-1">
             <ChevronLeft className="h-4 w-4" />
             Fichas
           </Button>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-rosa-800">{paciente?.nombre ?? 'Ficha'}</h1>
+        <div className="flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold text-rosa-800">{paciente?.nombre ?? 'Ficha'}</h1>
+            {pacienteCodigo && (
+              <span className="text-sm text-rosa-400 font-mono">{pacienteCodigo}</span>
+            )}
+            {numeroFicha && (
+              <Badge variant="default" className="bg-rosa-100 text-rosa-700 border border-rosa-200">
+                {numeroFicha}
+              </Badge>
+            )}
+            {tipoBadge === 'seguimiento' && (
+              <Badge variant="warning">Seguimiento</Badge>
+            )}
+          </div>
           <p className="text-rosa-500 text-sm">
             Consulta del {ficha.fecha_consulta ? formatDate(ficha.fecha_consulta) : '—'}
           </p>
         </div>
+        <Link href={`/fichas/${params.id}/seguimiento`}>
+          <Button size="sm" className="gap-1.5 shrink-0">
+            <Plus className="h-4 w-4" />
+            Crear Seguimiento
+          </Button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -147,6 +186,63 @@ export default async function FichaDetailPage({ params }: PageProps) {
                 <div className="mt-4">
                   <p className="text-xs text-rosa-500 font-medium uppercase tracking-wide mb-1">No le gusta comer</p>
                   <p className="text-sm text-rosa-800">{ficha.no_le_gusta_comer}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Historial de seguimientos */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Historial de Seguimientos</CardTitle>
+                <Link href={`/fichas/${params.id}/seguimiento`}>
+                  <Button size="sm" variant="outline" className="gap-1.5">
+                    <Plus className="h-3.5 w-3.5" />
+                    Nuevo Seguimiento
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!seguimientos || seguimientos.length === 0 ? (
+                <p className="text-sm text-rosa-400">Sin seguimientos aún</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left pb-2 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Fecha</th>
+                        <th className="text-left pb-2 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Peso</th>
+                        <th className="text-left pb-2 text-xs font-semibold text-rosa-600 uppercase tracking-wide">IMC</th>
+                        <th className="text-left pb-2 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Dx Grasa</th>
+                        <th className="pb-2" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(seguimientos as any[]).map((seg) => (
+                        <tr key={seg.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/60 transition-colors">
+                          <td className="py-2.5 text-rosa-700">
+                            {seg.fecha_consulta ? formatDate(seg.fecha_consulta) : '—'}
+                          </td>
+                          <td className="py-2.5 text-rosa-700">
+                            {seg.peso_kg != null ? `${seg.peso_kg} kg` : '—'}
+                          </td>
+                          <td className="py-2.5 text-rosa-700 font-semibold">
+                            {formatDecimal(seg.imc, 1)}
+                          </td>
+                          <td className="py-2.5 text-rosa-700">
+                            {seg.dx_grasa ?? '—'}
+                          </td>
+                          <td className="py-2.5 text-right">
+                            <Link href={`/fichas/${seg.id}`}>
+                              <Button variant="ghost" size="sm" className="text-xs">Ver →</Button>
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </CardContent>
