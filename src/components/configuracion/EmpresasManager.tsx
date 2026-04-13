@@ -4,12 +4,15 @@ import { useEffect, useState } from 'react'
 import { Building2, Plus, Pencil, Trash2, Check, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { createClient } from '@/lib/supabase/client'
 
 interface Empresa {
   id: string
   nombre: string
   created_at: string
 }
+
+const supabase = createClient()
 
 export function EmpresasManager() {
   const [empresas, setEmpresas] = useState<Empresa[]>([])
@@ -30,9 +33,16 @@ export function EmpresasManager() {
 
   async function fetchEmpresas() {
     try {
-      const res = await fetch('/api/empresas')
-      const json = await res.json()
-      setEmpresas(json.data ?? [])
+      const { data, error: err } = await supabase
+        .from('empresas')
+        .select('*')
+        .order('nombre')
+
+      if (err) {
+        setError(err.message)
+        return
+      }
+      setEmpresas((data as Empresa[]) ?? [])
     } catch {
       setError('Error al cargar empresas')
     } finally {
@@ -51,17 +61,23 @@ export function EmpresasManager() {
     setAdding(true)
     setError(null)
     try {
-      const res = await fetch('/api/empresas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre }),
-      })
-      const json = await res.json()
-      if (!res.ok) {
-        setError(json.error)
+      const { data, error: err } = await supabase
+        .from('empresas')
+        .insert({ nombre })
+        .select()
+        .single()
+
+      if (err) {
+        if (err.code === '23505') {
+          setError('Ya existe una empresa con ese nombre')
+        } else {
+          setError(err.message)
+        }
         return
       }
-      setEmpresas((prev) => [...prev, json.data].sort((a, b) => a.nombre.localeCompare(b.nombre)))
+      setEmpresas((prev) =>
+        [...prev, data as Empresa].sort((a, b) => a.nombre.localeCompare(b.nombre))
+      )
       setNewName('')
     } catch {
       setError('Error al crear empresa')
@@ -77,19 +93,24 @@ export function EmpresasManager() {
     setSaving(true)
     setError(null)
     try {
-      const res = await fetch(`/api/empresas/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre }),
-      })
-      const json = await res.json()
-      if (!res.ok) {
-        setError(json.error)
+      const { data, error: err } = await supabase
+        .from('empresas')
+        .update({ nombre })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (err) {
+        if (err.code === '23505') {
+          setError('Ya existe una empresa con ese nombre')
+        } else {
+          setError(err.message)
+        }
         return
       }
       setEmpresas((prev) =>
         prev
-          .map((e) => (e.id === id ? json.data : e))
+          .map((e) => (e.id === id ? (data as Empresa) : e))
           .sort((a, b) => a.nombre.localeCompare(b.nombre))
       )
       setEditingId(null)
@@ -104,10 +125,13 @@ export function EmpresasManager() {
     setDeletingId(id)
     setError(null)
     try {
-      const res = await fetch(`/api/empresas/${id}`, { method: 'DELETE' })
-      if (!res.ok) {
-        const json = await res.json()
-        setError(json.error)
+      const { error: err } = await supabase
+        .from('empresas')
+        .delete()
+        .eq('id', id)
+
+      if (err) {
+        setError(err.message)
         return
       }
       setEmpresas((prev) => prev.filter((e) => e.id !== id))
