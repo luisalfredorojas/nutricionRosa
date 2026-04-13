@@ -69,7 +69,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {statCards.map(({ label, value, icon: Icon, href, color }) => (
           <Link key={label} href={href} className="group">
-            <div className="bg-white rounded-xl border border-rosa-200 p-5 shadow-sm hover:shadow-md hover:border-rosa-300 transition-all">
+            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:border-gray-300 transition-all">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-xs font-semibold text-rosa-500 uppercase tracking-wide">{label}</p>
@@ -85,8 +85,8 @@ export default async function DashboardPage() {
       </div>
 
       {/* Recent fichas */}
-      <div className="bg-white rounded-xl border border-rosa-200 shadow-sm">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-rosa-100">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-rosa-800 text-sm">Últimas fichas registradas</h2>
           <Link
             href="/fichas"
@@ -107,14 +107,14 @@ export default async function DashboardPage() {
             </Link>
           </div>
         ) : (
-          <ul className="divide-y divide-rosa-50">
+          <ul className="divide-y divide-gray-100">
             {ultimasFichas.data.map((ficha) => {
               const p = ficha.pacientes as unknown as { nombre: string; empresas: { nombre: string } | null } | null
               return (
                 <li key={ficha.id}>
                   <Link
                     href={`/fichas/${ficha.id}`}
-                    className="flex items-center justify-between px-5 py-3 hover:bg-rosa-50 transition-colors group"
+                    className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors group"
                   >
                     <div>
                       <p className="text-sm font-medium text-rosa-800">{p?.nombre ?? '—'}</p>
@@ -139,7 +139,7 @@ export default async function DashboardPage() {
       {/* Quick actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link href="/tabla" className="group">
-          <div className="bg-white rounded-xl border border-rosa-200 p-5 shadow-sm hover:shadow-md hover:border-rosa-300 transition-all flex items-center gap-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:border-gray-300 transition-all flex items-center gap-4">
             <div className="p-3 bg-rosa-50 rounded-xl group-hover:bg-rosa-100 transition-colors">
               <FileText className="h-5 w-5 text-rosa-500" />
             </div>
@@ -151,7 +151,7 @@ export default async function DashboardPage() {
           </div>
         </Link>
         <Link href="/kpis" className="group">
-          <div className="bg-white rounded-xl border border-rosa-200 p-5 shadow-sm hover:shadow-md hover:border-rosa-300 transition-all flex items-center gap-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:border-gray-300 transition-all flex items-center gap-4">
             <div className="p-3 bg-rosa-50 rounded-xl group-hover:bg-rosa-100 transition-colors">
               <Users className="h-5 w-5 text-rosa-500" />
             </div>

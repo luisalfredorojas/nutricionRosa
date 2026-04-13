@@ -8,7 +8,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="flex h-screen bg-rosa-50 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div

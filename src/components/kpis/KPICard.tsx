@@ -20,7 +20,7 @@ const variantStyles = {
     iconBg: 'bg-rosa-100',
     iconColor: 'text-rosa-600',
     valueColor: 'text-rosa-800',
-    border: 'border-rosa-200',
+    border: 'border-gray-200',
   },
   success: {
     bg: 'bg-white',
@@ -59,9 +59,9 @@ export function KPICard({
   if (loading) {
     return (
       <div className={cn('rounded-xl border p-6 shadow-sm animate-pulse', styles.bg, styles.border)}>
-        <div className="h-4 bg-rosa-100 rounded w-2/3 mb-3" />
-        <div className="h-8 bg-rosa-100 rounded w-1/2 mb-2" />
-        <div className="h-3 bg-rosa-50 rounded w-1/3" />
+        <div className="h-4 bg-gray-200 rounded w-2/3 mb-3" />
+        <div className="h-8 bg-gray-200 rounded w-1/2 mb-2" />
+        <div className="h-3 bg-gray-100 rounded w-1/3" />
       </div>
     )
   }

@@ -93,7 +93,7 @@ export function FichaForm() {
         {/* Main form area */}
         <div className="flex-1 min-w-0">
           {/* Tab navigation */}
-          <div className="flex gap-1 bg-rosa-100 p-1 rounded-xl mb-6 overflow-x-auto">
+          <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-6 overflow-x-auto">
             {TABS.map((tab) => (
               <button
                 key={tab.id}

@@ -27,8 +27,8 @@ export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 bg-white border-r border-rosa-200 flex flex-col h-full shrink-0">
-      <div className="p-5 border-b border-rosa-200 flex items-center justify-between">
+    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-full shrink-0">
+      <div className="p-5 border-b border-gray-200 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-rosa-800">NutricionRosa</h1>
           <p className="text-xs text-rosa-400 mt-0.5">Plataforma Nutricional</p>
@@ -52,8 +52,8 @@ export function Sidebar({ onClose }: SidebarProps) {
               onClick={onClose}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-rosa-100 text-rosa-800'
-                  : 'text-rosa-500 hover:bg-rosa-50 hover:text-rosa-700'
+                  ? 'bg-rosa-50 text-rosa-800'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-rosa-700'
               }`}
             >
               <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-rosa-600' : 'text-rosa-400'}`} />
@@ -62,7 +62,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           )
         })}
       </nav>
-      <div className="p-4 border-t border-rosa-100">
+      <div className="p-4 border-t border-gray-200">
         <p className="text-xs text-rosa-300 text-center">v0.1.0</p>
       </div>
     </aside>

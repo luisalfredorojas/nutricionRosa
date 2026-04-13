@@ -155,7 +155,7 @@ export function EmpresasManager() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl border border-rosa-200 p-10 text-center">
+      <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
         <Loader2 className="h-6 w-6 text-rosa-400 animate-spin mx-auto" />
         <p className="text-sm text-rosa-400 mt-2">Cargando empresas...</p>
       </div>
@@ -163,8 +163,8 @@ export function EmpresasManager() {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-rosa-200 shadow-sm">
-      <div className="px-5 py-4 border-b border-rosa-100 flex items-center gap-3">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+      <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
         <Building2 className="h-5 w-5 text-rosa-500" />
         <div>
           <h2 className="font-semibold text-rosa-800 text-sm">Empresas</h2>
@@ -173,7 +173,7 @@ export function EmpresasManager() {
       </div>
 
       {/* Add new empresa */}
-      <div className="px-5 py-4 border-b border-rosa-100">
+      <div className="px-5 py-4 border-b border-gray-100">
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -215,7 +215,7 @@ export function EmpresasManager() {
           <p className="text-xs mt-1">Agrega la primera empresa usando el campo de arriba</p>
         </div>
       ) : (
-        <ul className="divide-y divide-rosa-50">
+        <ul className="divide-y divide-gray-100">
           {empresas.map((empresa) => (
             <li key={empresa.id} className="px-5 py-3 flex items-center gap-3">
               {editingId === empresa.id ? (
@@ -278,7 +278,7 @@ export function EmpresasManager() {
         </ul>
       )}
 
-      <div className="px-5 py-3 border-t border-rosa-100 text-xs text-rosa-300">
+      <div className="px-5 py-3 border-t border-gray-100 text-xs text-rosa-300">
         {empresas.length} empresa{empresas.length !== 1 ? 's' : ''} registrada{empresas.length !== 1 ? 's' : ''}
       </div>
     </div>

@@ -18,10 +18,10 @@ export function Header({ onMenuClick }: HeaderProps) {
   }
 
   return (
-    <header className="bg-white border-b border-rosa-200 px-4 lg:px-6 py-3 flex items-center justify-between shrink-0">
+    <header className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex items-center justify-between shrink-0">
       <button
         onClick={onMenuClick}
-        className="lg:hidden p-2 rounded-lg text-rosa-500 hover:bg-rosa-50 hover:text-rosa-700"
+        className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-rosa-700"
         aria-label="Abrir menú"
       >
         <Menu className="h-5 w-5" />

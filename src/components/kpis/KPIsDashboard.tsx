@@ -156,7 +156,7 @@ export function KPIsDashboard() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="h-52 bg-rosa-50 rounded-lg animate-pulse" />
+              <div className="h-52 bg-gray-100 rounded-lg animate-pulse" />
             ) : (
               <GrasaChart data={kpis?.distribucionGrasa ?? []} />
             )}
@@ -170,7 +170,7 @@ export function KPIsDashboard() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="h-52 bg-rosa-50 rounded-lg animate-pulse" />
+              <div className="h-52 bg-gray-100 rounded-lg animate-pulse" />
             ) : (
               <RiesgoChart data={riesgoData} />
             )}

@@ -64,11 +64,11 @@ export function FichasListClient({ fichas }: FichasListClientProps) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por nombre o empresa..."
-          className="w-full pl-9 pr-4 h-9 border border-rosa-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rosa-400 bg-white placeholder:text-rosa-300"
+          className="w-full pl-9 pr-4 h-9 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rosa-400 bg-white placeholder:text-gray-400"
         />
       </div>
 
-      <div className="bg-white rounded-xl border border-rosa-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         {filtered.length === 0 ? (
           <div className="py-16 text-center text-rosa-300">
             <FileText className="h-10 w-10 mx-auto mb-3 opacity-40" />
@@ -88,7 +88,7 @@ export function FichasListClient({ fichas }: FichasListClientProps) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[520px]">
               <thead>
-                <tr className="border-b border-rosa-200 bg-rosa-50">
+                <tr className="border-b border-gray-200 bg-gray-50">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Paciente</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide hidden sm:table-cell">Empresa</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide hidden md:table-cell">Fecha</th>
@@ -101,7 +101,7 @@ export function FichasListClient({ fichas }: FichasListClientProps) {
                 {filtered.map((ficha) => (
                   <tr
                     key={ficha.id}
-                    className="border-b border-rosa-50 hover:bg-rosa-50/60 transition-colors last:border-0"
+                    className="border-b border-gray-100 hover:bg-gray-50/60 transition-colors last:border-0"
                   >
                     <td className="px-4 py-3 font-medium text-rosa-800">{ficha.nombre ?? '—'}</td>
                     <td className="px-4 py-3 text-rosa-500 hidden sm:table-cell">{ficha.empresa ?? '—'}</td>

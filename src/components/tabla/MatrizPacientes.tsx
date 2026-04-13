@@ -50,7 +50,7 @@ export function MatrizPacientes({ data, globalFilter = '' }: MatrizPacientesProp
 
   if (data.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-rosa-200 p-16 text-center">
+      <div className="bg-white rounded-xl border border-gray-200 p-16 text-center">
         <p className="text-rosa-400 text-lg font-medium">No hay datos disponibles</p>
         <p className="text-rosa-300 text-sm mt-1">Las fichas aparecerán aquí una vez registradas</p>
       </div>
@@ -58,12 +58,12 @@ export function MatrizPacientes({ data, globalFilter = '' }: MatrizPacientesProp
   }
 
   return (
-    <div className="bg-white rounded-xl border border-rosa-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
         <table className="text-sm border-collapse" style={{ minWidth: 'max-content' }}>
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="border-b border-rosa-200 bg-rosa-50">
+              <tr key={headerGroup.id} className="border-b border-gray-200 bg-gray-50">
                 {headerGroup.headers.map((header) => {
                   const meta = header.column.columnDef.meta as ColumnMeta | undefined
                   const isSticky = meta?.sticky === true
@@ -79,7 +79,7 @@ export function MatrizPacientes({ data, globalFilter = '' }: MatrizPacientesProp
                       }}
                       className={cn(
                         'px-3 py-3 text-left text-xs font-semibold text-rosa-700 uppercase tracking-wide whitespace-nowrap',
-                        isSticky && 'sticky bg-rosa-50 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]'
+                        isSticky && 'sticky bg-gray-50 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]'
                       )}
                     >
                       {header.isPlaceholder ? null : (
@@ -115,8 +115,8 @@ export function MatrizPacientes({ data, globalFilter = '' }: MatrizPacientesProp
               <tr
                 key={row.id}
                 className={cn(
-                  'border-b border-rosa-100 hover:bg-rosa-50/60 transition-colors',
-                  rowIndex % 2 === 0 ? 'bg-white' : 'bg-rosa-50/20'
+                  'border-b border-gray-100 hover:bg-gray-50/60 transition-colors',
+                  rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
                 )}
               >
                 {row.getVisibleCells().map((cell) => {
@@ -136,7 +136,7 @@ export function MatrizPacientes({ data, globalFilter = '' }: MatrizPacientesProp
                         'px-3 py-2.5 text-rosa-700 whitespace-nowrap',
                         isSticky && cn(
                           'sticky shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]',
-                          rowIndex % 2 === 0 ? 'bg-white' : 'bg-rosa-50/20'
+                          rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
                         )
                       )}
                     >
@@ -149,7 +149,7 @@ export function MatrizPacientes({ data, globalFilter = '' }: MatrizPacientesProp
           </tbody>
         </table>
       </div>
-      <div className="px-4 py-2 border-t border-rosa-100 bg-rosa-50/50 text-xs text-rosa-500">
+      <div className="px-4 py-2 border-t border-gray-200 bg-gray-50/50 text-xs text-rosa-500">
         {table.getRowModel().rows.length} de {data.length} registros
       </div>
     </div>

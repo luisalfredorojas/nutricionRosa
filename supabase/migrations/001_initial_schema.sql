@@ -109,13 +109,16 @@ ALTER TABLE empresas ENABLE ROW LEVEL SECURITY;
 
 -- Solo usuarios autenticados tienen acceso completo
 CREATE POLICY "Authenticated users full access" ON fichas_nutricionales
-  FOR ALL USING (auth.role() = 'authenticated');
+  FOR ALL USING (auth.uid() IS NOT NULL)
+  WITH CHECK (auth.uid() IS NOT NULL);
 
 CREATE POLICY "Authenticated users full access" ON pacientes
-  FOR ALL USING (auth.role() = 'authenticated');
+  FOR ALL USING (auth.uid() IS NOT NULL)
+  WITH CHECK (auth.uid() IS NOT NULL);
 
 CREATE POLICY "Authenticated users full access" ON empresas
-  FOR ALL USING (auth.role() = 'authenticated');
+  FOR ALL USING (auth.uid() IS NOT NULL)
+  WITH CHECK (auth.uid() IS NOT NULL);
 
 -- =============================================
 -- Datos iniciales: Empresas de ejemplo
