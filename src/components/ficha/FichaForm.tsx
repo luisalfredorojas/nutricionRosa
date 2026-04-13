@@ -89,12 +89,7 @@ export function FichaForm() {
 
   return (
     <form
-      onSubmit={form.handleSubmit(onSubmit)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
-          e.preventDefault()
-        }
-      }}
+      onSubmit={(e) => e.preventDefault()}
     >
       <div className="flex flex-col xl:flex-row gap-6">
         {/* Main form area */}
@@ -151,7 +146,11 @@ export function FichaForm() {
                 Siguiente →
               </Button>
             ) : (
-              <Button type="submit" disabled={saving}>
+              <Button
+                type="button"
+                disabled={saving}
+                onClick={() => form.handleSubmit(onSubmit)()}
+              >
                 {saving ? 'Guardando...' : 'Guardar Ficha'}
               </Button>
             )}
