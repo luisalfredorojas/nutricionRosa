@@ -5,7 +5,8 @@ CREATE SEQUENCE IF NOT EXISTS fichas_numero_seq;
 -- Código único de paciente: PAC-0001, PAC-0002...
 ALTER TABLE pacientes ADD COLUMN IF NOT EXISTS codigo TEXT;
 UPDATE pacientes SET codigo = 'PAC-' || LPAD(nextval('pacientes_codigo_seq')::text, 4, '0') WHERE codigo IS NULL;
-ALTER TABLE pacientes ADD CONSTRAINT IF NOT EXISTS pacientes_codigo_unique UNIQUE (codigo);
+ALTER TABLE pacientes DROP CONSTRAINT IF EXISTS pacientes_codigo_unique;
+ALTER TABLE pacientes ADD CONSTRAINT pacientes_codigo_unique UNIQUE (codigo);
 
 -- Número único de ficha: F-0001, F-0002...
 ALTER TABLE fichas_nutricionales ADD COLUMN IF NOT EXISTS numero_ficha TEXT;
@@ -15,7 +16,8 @@ ALTER TABLE fichas_nutricionales ADD COLUMN IF NOT EXISTS tipo TEXT DEFAULT 'ini
 ALTER TABLE fichas_nutricionales ADD COLUMN IF NOT EXISTS ficha_padre_id UUID REFERENCES fichas_nutricionales(id) ON DELETE SET NULL;
 
 UPDATE fichas_nutricionales SET numero_ficha = 'F-' || LPAD(nextval('fichas_numero_seq')::text, 4, '0'), tipo = 'inicial' WHERE numero_ficha IS NULL;
-ALTER TABLE fichas_nutricionales ADD CONSTRAINT IF NOT EXISTS fichas_numero_unique UNIQUE (numero_ficha);
+ALTER TABLE fichas_nutricionales DROP CONSTRAINT IF EXISTS fichas_numero_unique;
+ALTER TABLE fichas_nutricionales ADD CONSTRAINT fichas_numero_unique UNIQUE (numero_ficha);
 
 -- Trigger auto-código paciente
 CREATE OR REPLACE FUNCTION generate_paciente_codigo() RETURNS TRIGGER AS $$
