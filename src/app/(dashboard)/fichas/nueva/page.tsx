@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import Link from 'next/link'
 import { FichaForm } from '@/components/ficha/FichaForm'
 import { Button } from '@/components/ui/button'
