@@ -7,14 +7,16 @@ import {
   FileText,
   Table2,
   BarChart3,
+  Settings,
   X,
 } from 'lucide-react'
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/inicio', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/fichas', label: 'Fichas Médicas', icon: FileText },
   { href: '/tabla', label: 'Tabla / Matriz', icon: Table2 },
   { href: '/kpis', label: 'KPIs', icon: BarChart3 },
+  { href: '/configuracion', label: 'Configuración', icon: Settings },
 ]
 
 interface SidebarProps {
@@ -42,8 +44,7 @@ export function Sidebar({ onClose }: SidebarProps) {
       </div>
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {navItems.map(({ href, label, icon: Icon }) => {
-          const isActive =
-            href === '/' ? pathname === '/' : pathname.startsWith(href)
+          const isActive = pathname.startsWith(href)
           return (
             <Link
               key={href}
