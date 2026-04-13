@@ -41,7 +41,7 @@ export async function updateSession(request: NextRequest) {
 
   if (isAuthPage && user) {
     const url = request.nextUrl.clone()
-    url.pathname = '/'
+    url.pathname = '/inicio'
     return NextResponse.redirect(url)
   }
 
