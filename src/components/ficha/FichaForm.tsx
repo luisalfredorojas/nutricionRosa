@@ -88,7 +88,14 @@ export function FichaForm() {
   }
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
+    <form
+      onSubmit={form.handleSubmit(onSubmit)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+          e.preventDefault()
+        }
+      }}
+    >
       <div className="flex flex-col xl:flex-row gap-6">
         {/* Main form area */}
         <div className="flex-1 min-w-0">
