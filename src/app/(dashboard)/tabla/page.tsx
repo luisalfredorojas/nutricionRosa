@@ -35,18 +35,31 @@ export default async function TablaPage() {
       consumo_cafe,
       consumo_alcohol,
       consumo_tabaco,
-      pacientes (
+      pacientes!inner (
         nombre,
         sexo,
         correo,
         ciudad,
+        fecha_nacimiento,
+        tipo_paciente,
         empresa_id,
         empresas (
           nombre
         )
       )
     `)
+    .eq('pacientes.tipo_paciente', 'empresa')
     .order('fecha_consulta', { ascending: false })
+
+  function calcularEdad(fechaNacimiento: string | null): number | null {
+    if (!fechaNacimiento) return null
+    const hoy = new Date()
+    const nac = new Date(fechaNacimiento)
+    let edad = hoy.getFullYear() - nac.getFullYear()
+    const mes = hoy.getMonth() - nac.getMonth()
+    if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) edad--
+    return edad
+  }
 
   // Transform to flat FichaRow format
   const rows = (fichasRaw ?? []).map((f) => {
@@ -55,6 +68,8 @@ export default async function TablaPage() {
       sexo: string
       correo: string | null
       ciudad: string | null
+      fecha_nacimiento: string | null
+      tipo_paciente: string
       empresas: { nombre: string } | null
     } | null
 
@@ -66,7 +81,7 @@ export default async function TablaPage() {
       sexo: p?.sexo ?? null,
       ciudad: p?.ciudad ?? null,
       correo: p?.correo ?? null,
-      edad: null,
+      edad: calcularEdad(p?.fecha_nacimiento ?? null),
       peso_kg: f.peso_kg,
       talla_m: f.talla_m,
       imc: f.imc,
