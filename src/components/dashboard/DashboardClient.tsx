@@ -19,7 +19,7 @@ const IMC_COLORS   = ['#a78bfa', '#fde68a', '#6ee7b7', '#fca5a5', '#34d399', '#8
 
 function SectionDivider({ title }: { title: string }) {
   return (
-    <div className="flex items-center gap-4 my-8">
+    <div className="flex items-center gap-4 my-12">
       <div className="flex-1 h-px bg-gray-200" />
       <h2 className="text-base font-semibold italic text-gray-600 whitespace-nowrap">{title}</h2>
       <div className="flex-1 h-px bg-gray-200" />
@@ -270,7 +270,7 @@ export function DashboardClient() {
       {/* ═══ SECTION 1 — Mis pacientes ═══════════════════════════════════════ */}
       <SectionDivider title="Mis pacientes" />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pb-4">
         {/* Total pacientes */}
         {loading
           ? <SkeletonBlock h="h-36" />
@@ -313,7 +313,7 @@ export function DashboardClient() {
       {/* ═══ SECTION 2 — Peso ════════════════════════════════════════════════ */}
       <SectionDivider title="Peso de mis pacientes" />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pb-4">
         {loading ? (
           <>
             <SkeletonBlock h="h-36" />
@@ -353,7 +353,7 @@ export function DashboardClient() {
       {/* ═══ SECTION 3 — Porcentaje de grasa ════════════════════════════════ */}
       <SectionDivider title="Porcentaje de grasa" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 pb-4">
         {/* Promedio grasa */}
         <div className="lg:col-span-1">
           {loading
@@ -410,7 +410,7 @@ export function DashboardClient() {
       {/* ═══ SECTION 4 — IMC ═════════════════════════════════════════════════ */}
       <SectionDivider title="IMC de mis pacientes" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 pb-4">
         {/* Promedio IMC */}
         <div className="lg:col-span-1">
           {loading
