@@ -8,6 +8,7 @@ export const datosPersonalesSchema = z.object({
   }),
   correo: z.string().email('Correo inválido').optional().or(z.literal('')),
   ciudad: z.string().optional(),
+  tipo_paciente: z.enum(['privado', 'empresa']).default('empresa'),
   empresa_id: z.string().uuid('Empresa inválida').optional().or(z.literal('')),
 })
 

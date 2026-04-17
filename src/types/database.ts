@@ -41,6 +41,7 @@ export interface Database {
           correo: string | null
           ciudad: string | null
           empresa_id: string | null
+          tipo_paciente: 'privado' | 'empresa'
           created_at: string
           updated_at: string
         }
@@ -52,6 +53,7 @@ export interface Database {
           correo?: string | null
           ciudad?: string | null
           empresa_id?: string | null
+          tipo_paciente?: 'privado' | 'empresa'
           created_at?: string
           updated_at?: string
         }
@@ -63,6 +65,7 @@ export interface Database {
           correo?: string | null
           ciudad?: string | null
           empresa_id?: string | null
+          tipo_paciente?: 'privado' | 'empresa'
           updated_at?: string
         }
         Relationships: [

@@ -20,6 +20,9 @@ interface FichaItem {
 
 interface FichasListClientProps {
   fichas: FichaItem[]
+  titulo?: string
+  showEmpresa?: boolean
+  nuevaFichaHref?: string
 }
 
 const riesgoVariant = (r: string | null): 'success' | 'warning' | 'danger' | 'default' => {
@@ -29,7 +32,12 @@ const riesgoVariant = (r: string | null): 'success' | 'warning' | 'danger' | 'de
   return 'default'
 }
 
-export function FichasListClient({ fichas }: FichasListClientProps) {
+export function FichasListClient({
+  fichas,
+  titulo = 'Fichas Médicas',
+  showEmpresa = true,
+  nuevaFichaHref = '/fichas/nueva',
+}: FichasListClientProps) {
   const [search, setSearch] = useState('')
 
   const filtered = useMemo(() => {
@@ -47,12 +55,12 @@ export function FichasListClient({ fichas }: FichasListClientProps) {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
-          <h1 className="text-2xl font-bold text-rosa-800">Fichas Médicas</h1>
+          <h1 className="text-2xl font-bold text-rosa-800">{titulo}</h1>
           <p className="text-rosa-400 text-sm mt-0.5">
             {filtered.length} de {fichas.length} fichas
           </p>
         </div>
-        <Link href="/fichas/nueva">
+        <Link href={nuevaFichaHref}>
           <Button size="sm">
             <Plus className="h-4 w-4 mr-1.5" />
             Nueva Ficha
@@ -66,7 +74,7 @@ export function FichasListClient({ fichas }: FichasListClientProps) {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nombre, empresa o código..."
+          placeholder={showEmpresa ? 'Buscar por nombre, empresa o código...' : 'Buscar por nombre o código...'}
           className="w-full pl-9 pr-4 h-9 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rosa-400 bg-white placeholder:text-gray-400"
         />
       </div>
@@ -79,7 +87,7 @@ export function FichasListClient({ fichas }: FichasListClientProps) {
               {search ? 'Sin resultados para esa búsqueda' : 'No hay fichas registradas'}
             </p>
             {!search && (
-              <Link href="/fichas/nueva" className="inline-block mt-3">
+              <Link href={nuevaFichaHref} className="inline-block mt-3">
                 <Button size="sm">
                   <Plus className="h-4 w-4 mr-1.5" />
                   Nueva Ficha
@@ -94,7 +102,9 @@ export function FichasListClient({ fichas }: FichasListClientProps) {
                 <tr className="border-b border-gray-200 bg-gray-50">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Paciente</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide hidden sm:table-cell">Código</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide hidden sm:table-cell">Empresa</th>
+                  {showEmpresa && (
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide hidden sm:table-cell">Empresa</th>
+                  )}
                   <th className="text-left px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide hidden md:table-cell">Fecha</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">IMC</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide hidden sm:table-cell">Riesgo</th>
@@ -118,7 +128,9 @@ export function FichasListClient({ fichas }: FichasListClientProps) {
                     <td className="px-4 py-3 text-rosa-400 font-mono text-xs hidden sm:table-cell">
                       {ficha.codigo ?? '—'}
                     </td>
-                    <td className="px-4 py-3 text-rosa-500 hidden sm:table-cell">{ficha.empresa ?? '—'}</td>
+                    {showEmpresa && (
+                      <td className="px-4 py-3 text-rosa-500 hidden sm:table-cell">{ficha.empresa ?? '—'}</td>
+                    )}
                     <td className="px-4 py-3 text-rosa-500 whitespace-nowrap hidden md:table-cell">
                       {ficha.fecha_consulta ? formatDate(ficha.fecha_consulta) : '—'}
                     </td>

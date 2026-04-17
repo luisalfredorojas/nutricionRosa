@@ -28,7 +28,12 @@ function getTodayString(): string {
   return new Date().toISOString().split('T')[0]
 }
 
-export function FichaForm() {
+interface FichaFormProps {
+  defaultTipoPaciente?: 'privado' | 'empresa'
+  redirectTo?: string
+}
+
+export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo }: FichaFormProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabId>('personales')
   const [saving, setSaving] = useState(false)
@@ -38,6 +43,7 @@ export function FichaForm() {
     resolver: zodResolver(fichaCompletaSchema),
     defaultValues: {
       fecha_consulta: getTodayString(),
+      tipo_paciente: defaultTipoPaciente,
       correo: '',
       ciudad: '',
       empresa_id: '',
@@ -78,7 +84,8 @@ export function FichaForm() {
         throw new Error(body.error ?? 'Error al guardar la ficha')
       }
 
-      router.push('/fichas')
+      const destination = redirectTo ?? (form.getValues('tipo_paciente') === 'privado' ? '/privados' : '/empresas')
+      router.push(destination)
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')

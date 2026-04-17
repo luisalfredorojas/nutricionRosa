@@ -80,7 +80,8 @@ export async function POST(request: NextRequest) {
           sexo,
           correo: data.correo || null,
           ciudad: data.ciudad || null,
-          empresa_id: data.empresa_id || null,
+          tipo_paciente: data.tipo_paciente ?? 'empresa',
+          empresa_id: data.tipo_paciente === 'privado' ? null : (data.empresa_id || null),
         })
         .select('id')
         .single()
