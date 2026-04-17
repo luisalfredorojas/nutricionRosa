@@ -40,7 +40,7 @@ export function TablaClientWrapper({ initialData }: TablaClientWrapperProps) {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-rosa-800">Tabla / Matriz</h1>
+          <h1 className="text-2xl font-bold text-rosa-800">Matriz</h1>
           <p className="text-rosa-500 text-sm mt-1">
             {filteredData.length} de {initialData.length} registros
           </p>

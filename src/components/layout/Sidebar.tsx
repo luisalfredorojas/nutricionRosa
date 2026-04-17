@@ -6,8 +6,6 @@ import {
   LayoutDashboard,
   User,
   Building2,
-  Table2,
-  BarChart3,
   Settings,
   X,
 } from 'lucide-react'
@@ -16,8 +14,6 @@ const navItems = [
   { href: '/inicio', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/privados', label: 'Privados', icon: User },
   { href: '/empresas', label: 'Empresas', icon: Building2 },
-  { href: '/tabla', label: 'Tabla / Matriz', icon: Table2 },
-  { href: '/kpis', label: 'KPIs', icon: BarChart3 },
   { href: '/configuracion', label: 'Configuración', icon: Settings },
 ]
 
