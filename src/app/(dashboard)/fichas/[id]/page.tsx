@@ -48,8 +48,17 @@ export default async function FichaDetailPage({ params }: PageProps) {
     correo: string | null
     ciudad: string | null
     codigo?: string | null
-    empresas: { nombre: string } | null
+    tipo_paciente?: string | null
+    empresa_id?: string | null
+    empresas: { id?: string; nombre: string } | null
   } | null
+
+  const backHref =
+    paciente?.tipo_paciente === 'privado'
+      ? '/privados'
+      : paciente?.empresas
+        ? `/empresas/${paciente.empresa_id}/fichas`
+        : '/fichas'
 
   const fichaAny = ficha as any
   const numeroFicha: string | null = fichaAny.numero_ficha ?? null
@@ -80,10 +89,10 @@ export default async function FichaDetailPage({ params }: PageProps) {
   return (
     <div>
       <div className="flex items-center gap-3 mb-4">
-        <Link href="/fichas">
+        <Link href={backHref}>
           <Button variant="ghost" size="sm" className="gap-1">
             <ChevronLeft className="h-4 w-4" />
-            Fichas
+            {paciente?.tipo_paciente === 'privado' ? 'Privados' : 'Fichas'}
           </Button>
         </Link>
         <div className="flex-1">
