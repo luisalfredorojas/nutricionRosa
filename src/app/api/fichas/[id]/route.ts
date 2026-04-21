@@ -75,6 +75,9 @@ export async function PUT(
     if (data.talla_m !== undefined) payload.talla_m = data.talla_m
     if (data.circunferencia_cintura !== undefined) payload.circunferencia_cintura = data.circunferencia_cintura
     if (data.circunferencia_cadera !== undefined) payload.circunferencia_cadera = data.circunferencia_cadera
+    if (data.circunferencia_brazo !== undefined) payload.circunferencia_brazo = data.circunferencia_brazo
+    if (data.fecha_ultima_menstruacion !== undefined) payload.fecha_ultima_menstruacion = data.fecha_ultima_menstruacion
+    if (data.balanza_id !== undefined) payload.balanza_id = data.balanza_id || null
     if (data.recordatorio_24h !== undefined) payload.recordatorio_24h = data.recordatorio_24h
     if (data.comentarios !== undefined) payload.comentarios = data.comentarios
     if (data.porcentaje_masa_grasa !== undefined) payload.porcentaje_masa_grasa = data.porcentaje_masa_grasa
@@ -92,6 +95,7 @@ export async function PUT(
     if (data.consumo_alcohol !== undefined) payload.consumo_alcohol = data.consumo_alcohol
     if (data.consumo_tabaco !== undefined) payload.consumo_tabaco = data.consumo_tabaco
     if (data.no_le_gusta_comer !== undefined) payload.no_le_gusta_comer = data.no_le_gusta_comer
+    if (data.le_gusta_comer !== undefined) payload.le_gusta_comer = data.le_gusta_comer
     if (indicadores.pesoIdeal !== null) payload.peso_ideal = indicadores.pesoIdeal
     if (indicadores.dxGrasa !== null) payload.dx_grasa = indicadores.dxGrasa
     if (indicadores.dxMusculo !== null) payload.dx_musculo = indicadores.dxMusculo

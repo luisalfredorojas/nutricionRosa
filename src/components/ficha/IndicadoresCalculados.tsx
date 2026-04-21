@@ -8,9 +8,8 @@ interface IndicadoresCalculadosProps {
 
 const riesgoColor: Record<string, 'success' | 'warning' | 'danger' | 'default'> = {
   Bajo: 'success',
-  Moderado: 'warning',
+  Aumentado: 'warning',
   Alto: 'danger',
-  'Muy alto': 'danger',
 }
 
 const imcColor: Record<string, 'success' | 'warning' | 'danger' | 'default'> = {
@@ -20,6 +19,27 @@ const imcColor: Record<string, 'success' | 'warning' | 'danger' | 'default'> = {
   'Obesidad grado I': 'danger',
   'Obesidad grado II': 'danger',
   'Obesidad grado III': 'danger',
+}
+
+const grasaColor: Record<string, 'success' | 'warning' | 'danger' | 'default'> = {
+  Bajo: 'warning',
+  Normal: 'success',
+  Elevado: 'warning',
+  Obesidad: 'danger',
+}
+
+const musculoColor: Record<string, 'success' | 'warning' | 'danger' | 'default'> = {
+  'Muy bajo': 'danger',
+  Bajo: 'warning',
+  Normal: 'default',
+  Bueno: 'success',
+  'Muy bueno': 'success',
+}
+
+const visceralColor: Record<string, 'success' | 'warning' | 'danger' | 'default'> = {
+  Normal: 'success',
+  Elevada: 'warning',
+  'Muy elevada': 'danger',
 }
 
 function IndicadorRow({
@@ -33,15 +53,15 @@ function IndicadorRow({
   badge?: string | null
   badgeVariant?: 'success' | 'warning' | 'danger' | 'default'
 }) {
-  if (value === null && badge === null) return null
+  if (value === null && !badge) return null
 
   return (
     <div className="flex items-center justify-between py-1.5 border-b border-rosa-100 last:border-0">
-      <span className="text-xs text-rosa-600">{label}</span>
+      <span className="text-sm text-rosa-600">{label}</span>
       <div className="flex items-center gap-2">
-        {value && <span className="text-sm font-semibold text-rosa-800">{value}</span>}
+        {value && <span className="text-base font-semibold text-rosa-800">{value}</span>}
         {badge && (
-          <Badge variant={badgeVariant ?? 'default'} className="text-xs">
+          <Badge variant={badgeVariant ?? 'default'} className="text-sm">
             {badge}
           </Badge>
         )}
@@ -57,13 +77,14 @@ export function IndicadoresCalculadosDisplay({ indicadores }: IndicadoresCalcula
     indicadores.indiceCC !== null ||
     indicadores.dxGrasa !== null ||
     indicadores.dxMusculo !== null ||
+    indicadores.dxGrasaVisceral !== null ||
     indicadores.riesgoMetabolico !== null
 
   if (!hasAny) {
     return (
       <div className="text-center py-6 text-rosa-300">
-        <p className="text-sm">Completa los datos antropométricos</p>
-        <p className="text-xs mt-1">para ver los indicadores</p>
+        <p className="text-base">Completa los datos antropométricos</p>
+        <p className="text-sm mt-1">para ver los indicadores</p>
       </div>
     )
   }
@@ -93,19 +114,19 @@ export function IndicadoresCalculadosDisplay({ indicadores }: IndicadoresCalcula
         label="Diagnóstico grasa"
         value={null}
         badge={indicadores.dxGrasa}
-        badgeVariant={
-          indicadores.dxGrasa === 'Atletico' || indicadores.dxGrasa === 'Fitness' ? 'success' :
-          indicadores.dxGrasa === 'Promedio' ? 'warning' : 'danger'
-        }
+        badgeVariant={indicadores.dxGrasa ? grasaColor[indicadores.dxGrasa] : 'default'}
       />
       <IndicadorRow
         label="Diagnóstico músculo"
         value={null}
         badge={indicadores.dxMusculo}
-        badgeVariant={
-          indicadores.dxMusculo === 'Alto' || indicadores.dxMusculo === 'Muy alto' ? 'success' :
-          indicadores.dxMusculo === 'Normal' ? 'default' : 'warning'
-        }
+        badgeVariant={indicadores.dxMusculo ? musculoColor[indicadores.dxMusculo] : 'default'}
+      />
+      <IndicadorRow
+        label="Grasa visceral"
+        value={null}
+        badge={indicadores.dxGrasaVisceral}
+        badgeVariant={indicadores.dxGrasaVisceral ? visceralColor[indicadores.dxGrasaVisceral] : 'default'}
       />
       <IndicadorRow
         label="Riesgo metabólico"

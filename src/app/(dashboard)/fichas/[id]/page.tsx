@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { IndicadoresCalculadosDisplay } from '@/components/ficha/IndicadoresCalculados'
+import { TablaComparativa } from '@/components/ficha/TablaComparativa'
+import { ExportFichaPDF } from '@/components/ficha/ExportFichaPDF'
 import type { IndicadoresCalculados } from '@/types/ficha'
 import { formatDate, formatDecimal } from '@/lib/utils'
 import { ChevronLeft, Plus } from 'lucide-react'
@@ -62,6 +64,7 @@ export default async function FichaDetailPage({ params }: PageProps) {
     clasificacionICC: null,
     dxGrasa: ficha.dx_grasa as IndicadoresCalculados['dxGrasa'],
     dxMusculo: ficha.dx_musculo as IndicadoresCalculados['dxMusculo'],
+    dxGrasaVisceral: null,
     riesgoMetabolico: ficha.riesgo_metabolico as IndicadoresCalculados['riesgoMetabolico'],
   }
 
@@ -102,15 +105,18 @@ export default async function FichaDetailPage({ params }: PageProps) {
             Consulta del {ficha.fecha_consulta ? formatDate(ficha.fecha_consulta) : '—'}
           </p>
         </div>
-        <Link href={`/fichas/${params.id}/seguimiento`}>
-          <Button size="sm" className="gap-1.5 shrink-0">
-            <Plus className="h-4 w-4" />
-            Crear Seguimiento
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          <ExportFichaPDF fichaId={params.id} pacienteId={(ficha as any).paciente_id ?? ''} />
+          <Link href={`/fichas/${params.id}/seguimiento`}>
+            <Button size="sm" className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              Crear Seguimiento
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div id={`ficha-export-${params.id}`} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 space-y-6">
           {/* Datos personales */}
           <Card>
@@ -265,6 +271,15 @@ export default async function FichaDetailPage({ params }: PageProps) {
             </Badge>
           </div>
         </div>
+      </div>
+
+      {/* Tabla comparativa de todas las consultas del paciente */}
+      <div className="mt-8">
+        <h2 className="text-lg font-bold text-rosa-800 mb-3">Tabla Comparativa</h2>
+        <TablaComparativa
+          pacienteId={(ficha as any).paciente_id}
+          currentFichaId={params.id}
+        />
       </div>
     </div>
   )

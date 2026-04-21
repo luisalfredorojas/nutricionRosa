@@ -11,7 +11,9 @@ interface FichaNutricionalFormProps {
 }
 
 export function FichaNutricionalForm({ form }: FichaNutricionalFormProps) {
-  const { register, formState: { errors } } = form
+  const { register, watch, formState: { errors } } = form
+  const sexo = watch('sexo')
+  const isFemenino = sexo === 'Femenino'
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -103,6 +105,32 @@ export function FichaNutricionalForm({ form }: FichaNutricionalFormProps) {
           placeholder="Ej: 100"
         />
       </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="circunferencia_brazo">
+          Circunferencia brazo <span className="text-rosa-400 font-normal">(cm)</span>
+        </Label>
+        <Input
+          id="circunferencia_brazo"
+          type="number"
+          step="0.1"
+          {...register('circunferencia_brazo')}
+          placeholder="Ej: 28"
+        />
+      </div>
+
+      {isFemenino && (
+        <div className="space-y-1.5">
+          <Label htmlFor="fecha_ultima_menstruacion">
+            FUM <span className="text-rosa-400 font-normal">(Fecha última menstruación)</span>
+          </Label>
+          <Input
+            id="fecha_ultima_menstruacion"
+            type="date"
+            {...register('fecha_ultima_menstruacion')}
+          />
+        </div>
+      )}
 
       <div className="md:col-span-2 space-y-1.5">
         <Label htmlFor="recordatorio_24h">Recordatorio 24 horas</Label>

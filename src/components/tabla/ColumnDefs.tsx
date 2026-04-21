@@ -41,8 +41,8 @@ const col = createColumnHelper<FichaRow>()
 
 const riesgoVariant = (v: string | null): 'success' | 'warning' | 'danger' | 'default' => {
   if (v === 'Bajo') return 'success'
-  if (v === 'Moderado') return 'warning'
-  if (v === 'Alto' || v === 'Muy alto') return 'danger'
+  if (v === 'Aumentado' || v === 'Moderado') return 'warning'
+  if (v === 'Alto') return 'danger'
   return 'default'
 }
 
@@ -189,8 +189,9 @@ export const columnDefs = [
       const v = info.getValue()
       if (!v) return '—'
       const variant: 'success' | 'warning' | 'danger' | 'default' =
-        v === 'Atletico' || v === 'Fitness' ? 'success' :
-        v === 'Promedio' ? 'warning' : 'danger'
+        v === 'Normal' ? 'success' :
+        v === 'Elevado' || v === 'Bajo' ? 'warning' :
+        v === 'Obesidad' ? 'danger' : 'default'
       return <Badge variant={variant}>{v}</Badge>
     },
   }),
@@ -201,8 +202,9 @@ export const columnDefs = [
       const v = info.getValue()
       if (!v) return '—'
       const variant: 'success' | 'warning' | 'danger' | 'default' =
-        v === 'Alto' || v === 'Muy alto' ? 'success' :
-        v === 'Normal' ? 'default' : 'warning'
+        v === 'Bueno' || v === 'Muy bueno' ? 'success' :
+        v === 'Normal' ? 'default' :
+        v === 'Bajo' ? 'warning' : 'danger'
       return <Badge variant={variant}>{v}</Badge>
     },
   }),

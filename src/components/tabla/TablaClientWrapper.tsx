@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { MatrizPacientes } from './MatrizPacientes'
 import { ExportPDFButton } from './ExportPDFButton'
+import { ExportExcelButton } from './ExportExcelButton'
 import type { FichaRow } from './ColumnDefs'
 import { Search } from 'lucide-react'
 
@@ -45,7 +46,10 @@ export function TablaClientWrapper({ initialData }: TablaClientWrapperProps) {
             {filteredData.length} de {initialData.length} registros
           </p>
         </div>
-        <ExportPDFButton data={filteredData} />
+        <div className="flex items-center gap-2">
+          <ExportExcelButton data={filteredData} />
+          <ExportPDFButton data={filteredData} />
+        </div>
       </div>
 
       {/* Filters */}

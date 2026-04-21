@@ -3,6 +3,7 @@ import type {
   ClasificacionIMC,
   ClasificacionGrasa,
   ClasificacionMusculo,
+  ClasificacionGrasaVisceral,
   ClasificacionRiesgoMetabolico,
   ClasificacionICC,
   IndicadoresCalculados,
@@ -31,18 +32,14 @@ export function clasificarIMC(imc: number | null | undefined): ClasificacionIMC 
 }
 
 // ─────────────────────────────────────────────
-// Peso Ideal — Fórmula de Lorentz
+// Peso Ideal — 22 × talla²(m)
 // ─────────────────────────────────────────────
 
 export function calcularPesoIdeal(
-  tallaCm: number | null | undefined,
-  sexo: SexoType | null | undefined
+  tallaM: number | null | undefined
 ): number | null {
-  if (!tallaCm || !sexo) return null
-  if (sexo === 'Femenino') {
-    return Math.round(((tallaCm - 100) - (tallaCm - 150) / 2.5) * 10) / 10
-  }
-  return Math.round(((tallaCm - 100) - (tallaCm - 150) / 4) * 10) / 10
+  if (!tallaM || tallaM <= 0) return null
+  return Math.round(22 * tallaM * tallaM * 10) / 10
 }
 
 // ─────────────────────────────────────────────
@@ -64,14 +61,14 @@ export function clasificarICC(
   if (icc === null || icc === undefined || !sexo) return null
 
   if (sexo === 'Femenino') {
-    if (icc < 0.75) return 'Bajo'
-    if (icc <= 0.82) return 'Moderado'
+    if (icc < 0.80) return 'Bajo'
+    if (icc <= 0.85) return 'Moderado'
     return 'Alto'
   }
 
   // Masculino
-  if (icc < 0.85) return 'Bajo'
-  if (icc <= 0.95) return 'Moderado'
+  if (icc < 0.95) return 'Bajo'
+  if (icc <= 1.0) return 'Moderado'
   return 'Alto'
 }
 
@@ -86,18 +83,16 @@ export function clasificarGrasa(
   if (porcentajeGrasa === null || porcentajeGrasa === undefined || !sexo) return null
 
   if (sexo === 'Femenino') {
-    if (porcentajeGrasa < 14) return 'Grasa esencial / Bajo'
-    if (porcentajeGrasa <= 20) return 'Atletico'
-    if (porcentajeGrasa <= 24) return 'Fitness'
-    if (porcentajeGrasa <= 31) return 'Promedio'
+    if (porcentajeGrasa < 18) return 'Bajo'
+    if (porcentajeGrasa <= 28) return 'Normal'
+    if (porcentajeGrasa <= 34) return 'Elevado'
     return 'Obesidad'
   }
 
   // Masculino
-  if (porcentajeGrasa < 6) return 'Grasa esencial / Bajo'
-  if (porcentajeGrasa <= 13) return 'Atletico'
-  if (porcentajeGrasa <= 17) return 'Fitness'
-  if (porcentajeGrasa <= 24) return 'Promedio'
+  if (porcentajeGrasa < 8) return 'Bajo'
+  if (porcentajeGrasa <= 19) return 'Normal'
+  if (porcentajeGrasa <= 24) return 'Elevado'
   return 'Obesidad'
 }
 
@@ -112,64 +107,59 @@ export function clasificarMusculo(
   if (porcentajeMusculo === null || porcentajeMusculo === undefined || !sexo) return null
 
   if (sexo === 'Femenino') {
-    if (porcentajeMusculo < 24) return 'Bajo'
-    if (porcentajeMusculo <= 30) return 'Normal'
-    if (porcentajeMusculo <= 35) return 'Alto'
-    return 'Muy alto'
+    if (porcentajeMusculo < 24) return 'Muy bajo'
+    if (porcentajeMusculo <= 30) return 'Bajo'
+    if (porcentajeMusculo <= 35) return 'Normal'
+    if (porcentajeMusculo <= 40) return 'Bueno'
+    return 'Muy bueno'
   }
 
   // Masculino
-  if (porcentajeMusculo < 33) return 'Bajo'
-  if (porcentajeMusculo <= 39) return 'Normal'
-  if (porcentajeMusculo <= 44) return 'Alto'
-  return 'Muy alto'
+  if (porcentajeMusculo < 33) return 'Muy bajo'
+  if (porcentajeMusculo <= 39) return 'Bajo'
+  if (porcentajeMusculo <= 44) return 'Normal'
+  if (porcentajeMusculo <= 49) return 'Bueno'
+  return 'Muy bueno'
 }
 
 // ─────────────────────────────────────────────
-// Riesgo Metabólico
-// Combina: grasa visceral + ICC + cintura
+// Grasa Visceral
+// ─────────────────────────────────────────────
+
+export function clasificarGrasaVisceral(
+  nivel: number | null | undefined
+): ClasificacionGrasaVisceral | null {
+  if (nivel === null || nivel === undefined) return null
+  if (nivel <= 9) return 'Normal'
+  if (nivel <= 14) return 'Elevada'
+  return 'Muy elevada'
+}
+
+// ─────────────────────────────────────────────
+// Riesgo Metabólico — basado en cintura
 // ─────────────────────────────────────────────
 
 export function calcularRiesgoMetabolico(params: {
-  grasaVisceral: number | null | undefined
-  icc: number | null | undefined
   cintura: number | null | undefined
   sexo: SexoType | null | undefined
 }): ClasificacionRiesgoMetabolico | null {
-  const { grasaVisceral, icc, cintura, sexo } = params
+  const { cintura, sexo } = params
+  if (cintura === null || cintura === undefined || !sexo) return null
 
-  if (!sexo) return null
-
-  let indicadoresElevados = 0
-
-  // Grasa visceral
-  if (grasaVisceral !== null && grasaVisceral !== undefined) {
-    if (grasaVisceral >= 15) indicadoresElevados += 1
-    else if (grasaVisceral >= 10) indicadoresElevados += 0.5
+  if (sexo === 'Femenino') {
+    if (cintura < 80) return 'Bajo'
+    if (cintura < 88) return 'Aumentado'
+    return 'Alto'
   }
 
-  // ICC
-  if (icc !== null && icc !== undefined) {
-    const clasificacion = clasificarICC(icc, sexo)
-    if (clasificacion === 'Alto') indicadoresElevados += 1
-    else if (clasificacion === 'Moderado') indicadoresElevados += 0.5
-  }
-
-  // Cintura
-  if (cintura !== null && cintura !== undefined) {
-    const umbral = sexo === 'Femenino' ? 88 : 102
-    if (cintura > umbral) indicadoresElevados += 1
-  }
-
-  if (indicadoresElevados === 0) return 'Bajo'
-  if (indicadoresElevados <= 0.5) return 'Bajo'
-  if (indicadoresElevados <= 1) return 'Moderado'
-  if (indicadoresElevados <= 2) return 'Alto'
-  return 'Muy alto'
+  // Masculino
+  if (cintura < 94) return 'Bajo'
+  if (cintura < 102) return 'Aumentado'
+  return 'Alto'
 }
 
 // ─────────────────────────────────────────────
-// Calcular todos los indicadores de una vez
+// Calcular todos los indicadores
 // ─────────────────────────────────────────────
 
 export function calcularTodosLosIndicadores(params: {
@@ -184,18 +174,18 @@ export function calcularTodosLosIndicadores(params: {
 }): IndicadoresCalculados {
   const { pesoKg, tallaM, cintura, cadera, porcentajeGrasa, porcentajeMusculo, grasaVisceral, sexo } = params
 
-  const tallaCm = tallaM ? tallaM * 100 : null
   const imc = calcularIMC(pesoKg, tallaM)
   const icc = calcularICC(cintura, cadera)
 
   return {
     imc,
     clasificacionIMC: clasificarIMC(imc),
-    pesoIdeal: calcularPesoIdeal(tallaCm, sexo),
+    pesoIdeal: calcularPesoIdeal(tallaM),
     indiceCC: icc,
     clasificacionICC: clasificarICC(icc, sexo),
     dxGrasa: clasificarGrasa(porcentajeGrasa, sexo),
     dxMusculo: clasificarMusculo(porcentajeMusculo, sexo),
-    riesgoMetabolico: calcularRiesgoMetabolico({ grasaVisceral, icc, cintura, sexo }),
+    dxGrasaVisceral: clasificarGrasaVisceral(grasaVisceral),
+    riesgoMetabolico: calcularRiesgoMetabolico({ cintura, sexo }),
   }
 }

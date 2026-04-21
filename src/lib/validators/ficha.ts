@@ -20,11 +20,14 @@ export const fichaNutricionalSchema = z.object({
   talla_m: z.coerce.number().min(0.5).max(2.5).optional().nullable(),
   circunferencia_cintura: z.coerce.number().min(1).max(300).optional().nullable(),
   circunferencia_cadera: z.coerce.number().min(1).max(300).optional().nullable(),
+  circunferencia_brazo: z.coerce.number().min(1).max(100).optional().nullable(),
+  fecha_ultima_menstruacion: z.string().optional().nullable(),
   recordatorio_24h: z.string().optional(),
   comentarios: z.string().optional(),
 })
 
 export const datosBalanzaSchema = z.object({
+  balanza_id: z.string().uuid().optional().nullable().or(z.literal('')),
   porcentaje_masa_grasa: z.coerce.number().min(0).max(100).optional().nullable(),
   porcentaje_masa_muscular: z.coerce.number().min(0).max(100).optional().nullable(),
   edad_metabolica: z.coerce.number().min(1).max(120).optional().nullable(),
@@ -43,6 +46,7 @@ export const habitosSchema = z.object({
   consumo_alcohol: z.enum(['No consume', 'Semanal', 'Mensual']).optional().nullable(),
   consumo_tabaco: z.enum(['No consume', 'Semanal', 'Mensual']).optional().nullable(),
   no_le_gusta_comer: z.string().optional(),
+  le_gusta_comer: z.string().optional(),
 })
 
 export const fichaCompletaSchema = datosPersonalesSchema

@@ -52,6 +52,8 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo }: Ficha
       recordatorio_24h: '',
       comentarios: '',
       no_le_gusta_comer: '',
+      le_gusta_comer: '',
+      balanza_id: '',
     },
   })
 

@@ -31,7 +31,23 @@
   * {
     @apply border-border;
   }
+  html {
+    font-size: 16px;
+  }
   body {
     @apply bg-background text-foreground;
+    font-size: 1rem;
+  }
+}
+
+@layer utilities {
+  /* Global bump: legacy 0.75rem / 0.875rem utilities normalized to 1rem */
+  .text-xs {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+  .text-sm {
+    font-size: 1rem;
+    line-height: 1.5rem;
   }
 }

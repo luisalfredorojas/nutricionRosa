@@ -98,6 +98,16 @@ export function HabitosForm({ form }: HabitosFormProps) {
       </div>
 
       <div className="md:col-span-2 space-y-1.5">
+        <Label htmlFor="le_gusta_comer">Si le gusta comer</Label>
+        <Textarea
+          id="le_gusta_comer"
+          {...register('le_gusta_comer')}
+          placeholder="Alimentos que el paciente consume y le gustan..."
+          rows={2}
+        />
+      </div>
+
+      <div className="md:col-span-2 space-y-1.5">
         <Label htmlFor="no_le_gusta_comer">No le gusta comer</Label>
         <Textarea
           id="no_le_gusta_comer"

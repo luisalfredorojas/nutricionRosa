@@ -34,6 +34,7 @@ export interface Database {
       pacientes: {
         Row: {
           id: string
+          codigo: string | null
           nombre: string
           fecha_nacimiento: string
           edad: number | null
@@ -47,6 +48,7 @@ export interface Database {
         }
         Insert: {
           id?: string
+          codigo?: string | null
           nombre: string
           fecha_nacimiento: string
           sexo: string
@@ -59,6 +61,7 @@ export interface Database {
         }
         Update: {
           id?: string
+          codigo?: string | null
           nombre?: string
           fecha_nacimiento?: string
           sexo?: string
@@ -81,6 +84,9 @@ export interface Database {
       fichas_nutricionales: {
         Row: {
           id: string
+          numero_ficha: string | null
+          tipo: 'inicial' | 'seguimiento' | null
+          ficha_padre_id: string | null
           paciente_id: string
           fecha_consulta: string
           motivo_consulta: string | null
@@ -90,9 +96,12 @@ export interface Database {
           imc: number | null
           circunferencia_cintura: number | null
           circunferencia_cadera: number | null
+          circunferencia_brazo: number | null
+          fecha_ultima_menstruacion: string | null
           indice_cc: number | null
           recordatorio_24h: string | null
           comentarios: string | null
+          balanza_id: string | null
           porcentaje_masa_grasa: number | null
           porcentaje_masa_muscular: number | null
           edad_metabolica: number | null
@@ -108,6 +117,7 @@ export interface Database {
           consumo_alcohol: string | null
           consumo_tabaco: string | null
           no_le_gusta_comer: string | null
+          le_gusta_comer: string | null
           peso_ideal: number | null
           dx_grasa: string | null
           dx_musculo: string | null
@@ -117,6 +127,9 @@ export interface Database {
         }
         Insert: {
           id?: string
+          numero_ficha?: string | null
+          tipo?: 'inicial' | 'seguimiento' | null
+          ficha_padre_id?: string | null
           paciente_id: string
           fecha_consulta?: string
           motivo_consulta?: string | null
@@ -125,8 +138,11 @@ export interface Database {
           talla_m?: number | null
           circunferencia_cintura?: number | null
           circunferencia_cadera?: number | null
+          circunferencia_brazo?: number | null
+          fecha_ultima_menstruacion?: string | null
           recordatorio_24h?: string | null
           comentarios?: string | null
+          balanza_id?: string | null
           porcentaje_masa_grasa?: number | null
           porcentaje_masa_muscular?: number | null
           edad_metabolica?: number | null
@@ -142,6 +158,7 @@ export interface Database {
           consumo_alcohol?: string | null
           consumo_tabaco?: string | null
           no_le_gusta_comer?: string | null
+          le_gusta_comer?: string | null
           peso_ideal?: number | null
           dx_grasa?: string | null
           dx_musculo?: string | null
@@ -151,6 +168,9 @@ export interface Database {
         }
         Update: {
           id?: string
+          numero_ficha?: string | null
+          tipo?: 'inicial' | 'seguimiento' | null
+          ficha_padre_id?: string | null
           paciente_id?: string
           fecha_consulta?: string
           motivo_consulta?: string | null
@@ -159,8 +179,11 @@ export interface Database {
           talla_m?: number | null
           circunferencia_cintura?: number | null
           circunferencia_cadera?: number | null
+          circunferencia_brazo?: number | null
+          fecha_ultima_menstruacion?: string | null
           recordatorio_24h?: string | null
           comentarios?: string | null
+          balanza_id?: string | null
           porcentaje_masa_grasa?: number | null
           porcentaje_masa_muscular?: number | null
           edad_metabolica?: number | null
@@ -176,6 +199,7 @@ export interface Database {
           consumo_alcohol?: string | null
           consumo_tabaco?: string | null
           no_le_gusta_comer?: string | null
+          le_gusta_comer?: string | null
           peso_ideal?: number | null
           dx_grasa?: string | null
           dx_musculo?: string | null
@@ -192,6 +216,60 @@ export interface Database {
           }
         ]
       }
+      balanza_configs: {
+        Row: {
+          id: string
+          nombre: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nombre: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      balanza_campos: {
+        Row: {
+          id: string
+          balanza_id: string
+          nombre_campo: string
+          unidad: '%' | 'kg' | 'lb'
+          orden: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          balanza_id: string
+          nombre_campo: string
+          unidad: '%' | 'kg' | 'lb'
+          orden?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          balanza_id?: string
+          nombre_campo?: string
+          unidad?: '%' | 'kg' | 'lb'
+          orden?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "balanza_campos_balanza_id_fkey"
+            columns: ["balanza_id"]
+            isOneToOne: false
+            referencedRelation: "balanza_configs"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: Record<never, never>
     Functions: Record<never, never>
@@ -202,3 +280,5 @@ export interface Database {
 export type Empresa = Database['public']['Tables']['empresas']['Row']
 export type Paciente = Database['public']['Tables']['pacientes']['Row']
 export type FichaNutricional = Database['public']['Tables']['fichas_nutricionales']['Row']
+export type BalanzaConfig = Database['public']['Tables']['balanza_configs']['Row']
+export type BalanzaCampo = Database['public']['Tables']['balanza_campos']['Row']
