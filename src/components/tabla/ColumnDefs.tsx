@@ -10,6 +10,7 @@ export interface FichaRow {
   sexo: string | null
   ciudad: string | null
   correo: string | null
+  fecha_nacimiento: string | null
   edad: number | null
   peso_kg: number | null
   talla_m: number | null

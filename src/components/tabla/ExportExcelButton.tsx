@@ -19,7 +19,7 @@ export function ExportExcelButton({ data }: ExportExcelButtonProps) {
       const XLSX = await import('xlsx')
 
       const headers = [
-        'Paciente', 'Empresa', 'Fecha', 'Sexo', 'Peso', 'Talla', 'IMC',
+        'Paciente', 'Empresa', 'Fecha', 'Sexo', 'Fecha Nac.', 'Peso', 'Talla', 'IMC',
         'Cintura', 'Cadera', 'ICC', '% Grasa', '% Músculo',
         'Edad Met.', 'Gr. Visceral', 'Dx Grasa', 'Dx Músculo', 'Riesgo Met.',
         'Actividad', 'Descanso', 'Estrés',
@@ -30,6 +30,7 @@ export function ExportExcelButton({ data }: ExportExcelButtonProps) {
         r.empresa ?? '—',
         r.fecha_consulta ? formatDate(r.fecha_consulta) : '—',
         r.sexo ?? '—',
+        r.fecha_nacimiento ? formatDate(r.fecha_nacimiento) : '—',
         r.peso_kg != null ? `${formatDecimal(r.peso_kg, 1)} kg` : '—',
         r.talla_m != null ? `${r.talla_m} m` : '—',
         formatDecimal(r.imc, 1),

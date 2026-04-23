@@ -82,6 +82,7 @@ export default async function TablaPage() {
       sexo: p?.sexo ?? null,
       ciudad: p?.ciudad ?? null,
       correo: p?.correo ?? null,
+      fecha_nacimiento: p?.fecha_nacimiento ?? null,
       edad: calcularEdad(p?.fecha_nacimiento ?? null),
       peso_kg: f.peso_kg,
       talla_m: f.talla_m,
