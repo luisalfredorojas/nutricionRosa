@@ -51,7 +51,6 @@ const TEMPLATE_COLUMNS = [
 
 const TEMPLATE_EXAMPLE: Record<string, string | number> = {
   'Paciente': 'Ana Pérez',
-  'Empresa': '',
   'Fecha': new Date().toISOString().slice(0, 10),
   'Sexo': 'Femenino',
   'Fecha Nac.': '1990-05-15',
@@ -82,7 +81,8 @@ export function BulkUpload({ empresaId, empresaNombre }: BulkUploadProps) {
   const [error, setError] = useState<string | null>(null)
 
   function descargarPlantilla() {
-    const ws = XLSX.utils.json_to_sheet([TEMPLATE_EXAMPLE], { header: TEMPLATE_COLUMNS })
+    const example = { ...TEMPLATE_EXAMPLE, Empresa: empresaNombre }
+    const ws = XLSX.utils.json_to_sheet([example], { header: TEMPLATE_COLUMNS })
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Pacientes')
     const safeNombre = empresaNombre.replace(/[^a-z0-9]/gi, '_').toLowerCase()
