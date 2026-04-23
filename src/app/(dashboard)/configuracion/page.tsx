@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic'
 
 import { EmpresasManager } from '@/components/configuracion/EmpresasManager'
-import { BalanzasManager } from '@/components/configuracion/BalanzasManager'
 
 export default function ConfiguracionPage() {
   return (
@@ -12,7 +11,6 @@ export default function ConfiguracionPage() {
       </div>
 
       <EmpresasManager />
-      <BalanzasManager />
     </div>
   )
 }

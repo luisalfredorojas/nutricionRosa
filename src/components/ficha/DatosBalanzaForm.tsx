@@ -1,12 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { UseFormReturn } from 'react-hook-form'
 import type { FichaCompletaInput } from '@/lib/validators/ficha'
-import type { BalanzaConfig } from '@/types/database'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
 
 interface DatosBalanzaFormProps {
   form: UseFormReturn<FichaCompletaInput>
@@ -14,31 +11,9 @@ interface DatosBalanzaFormProps {
 
 export function DatosBalanzaForm({ form }: DatosBalanzaFormProps) {
   const { register, formState: { errors } } = form
-  const [balanzas, setBalanzas] = useState<BalanzaConfig[]>([])
-
-  useEffect(() => {
-    fetch('/api/balanzas')
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setBalanzas(data)
-      })
-      .catch(() => {})
-  }, [])
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-      <div className="md:col-span-2 space-y-1.5">
-        <Label htmlFor="balanza_id">Tipo de medición (Balanza)</Label>
-        <Select id="balanza_id" {...register('balanza_id')} placeholder="Seleccionar balanza...">
-          {balanzas.map((b) => (
-            <option key={b.id} value={b.id}>{b.nombre}</option>
-          ))}
-        </Select>
-        <p className="text-sm text-rosa-400">
-          Configura nuevas balanzas en <a href="/configuracion/balanzas" className="underline">Configuración → Balanzas</a>
-        </p>
-      </div>
-
       <div className="space-y-1.5">
         <Label htmlFor="porcentaje_masa_grasa">
           % Masa grasa
