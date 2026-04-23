@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Building2, ChevronRight } from 'lucide-react'
+import { BackButton } from '@/components/layout/BackButton'
 
 export default async function EmpresasFichasIndexPage() {
   const supabase = await createClient()
@@ -16,6 +17,7 @@ export default async function EmpresasFichasIndexPage() {
 
   return (
     <div>
+      <BackButton href="/empresas" />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-rosa-800">Fichas por Empresa</h1>
         <p className="text-rosa-400 text-sm mt-0.5">

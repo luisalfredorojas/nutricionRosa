@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { FichasListClient } from '@/components/ficha/FichasListClient'
 import { BulkUpload } from '@/components/empresas/BulkUpload'
+import { BackButton } from '@/components/layout/BackButton'
 
 interface PageProps {
   params: { id: string }
@@ -52,6 +53,7 @@ export default async function EmpresaFichasPage({ params }: PageProps) {
 
   return (
     <>
+      <BackButton href="/empresas/fichas" />
       <BulkUpload empresaId={empresa.id} empresaNombre={empresa.nombre} />
       <FichasListClient
         fichas={fichas}

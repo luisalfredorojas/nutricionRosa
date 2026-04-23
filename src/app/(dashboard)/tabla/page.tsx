@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { TablaClientWrapper } from '@/components/tabla/TablaClientWrapper'
+import { BackButton } from '@/components/layout/BackButton'
 
 export default async function TablaPage() {
   const supabase = await createClient()
@@ -111,5 +112,10 @@ export default async function TablaPage() {
     }
   })
 
-  return <TablaClientWrapper initialData={rows} />
+  return (
+    <>
+      <BackButton href="/empresas" />
+      <TablaClientWrapper initialData={rows} />
+    </>
+  )
 }
