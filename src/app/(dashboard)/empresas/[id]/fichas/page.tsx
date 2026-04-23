@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { FichasListClient } from '@/components/ficha/FichasListClient'
+import { BulkUpload } from '@/components/empresas/BulkUpload'
 
 interface PageProps {
   params: { id: string }
@@ -26,6 +27,7 @@ export default async function EmpresaFichasPage({ params }: PageProps) {
       pacientes!inner( nombre, codigo, empresa_id, empresas( nombre ) )
     `)
     .eq('pacientes.empresa_id', params.id)
+    .eq('tipo', 'inicial')
     .order('fecha_consulta', { ascending: false })
     .limit(500)
 
@@ -49,11 +51,14 @@ export default async function EmpresaFichasPage({ params }: PageProps) {
   })
 
   return (
-    <FichasListClient
-      fichas={fichas}
-      titulo={`Fichas — ${empresa.nombre}`}
-      showEmpresa={false}
-      nuevaFichaHref={`/fichas/nueva?tipo=empresa&empresa_id=${params.id}`}
-    />
+    <>
+      <BulkUpload empresaId={empresa.id} empresaNombre={empresa.nombre} />
+      <FichasListClient
+        fichas={fichas}
+        titulo={`Fichas — ${empresa.nombre}`}
+        showEmpresa={false}
+        nuevaFichaHref={`/fichas/nueva?tipo=empresa&empresa_id=${params.id}`}
+      />
+    </>
   )
 }

@@ -49,6 +49,7 @@ export default async function TablaPage() {
       )
     `)
     .eq('pacientes.tipo_paciente', 'empresa')
+    .eq('tipo', 'inicial')
     .order('fecha_consulta', { ascending: false })
 
   function calcularEdad(fechaNacimiento: string | null): number | null {
