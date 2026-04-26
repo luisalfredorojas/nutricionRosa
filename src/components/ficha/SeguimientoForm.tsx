@@ -36,9 +36,10 @@ function getTodayString(): string {
 interface SeguimientoFormProps {
   fichaId: string
   sexo: string
+  defaultTalla?: number | null
 }
 
-export function SeguimientoForm({ fichaId, sexo }: SeguimientoFormProps) {
+export function SeguimientoForm({ fichaId, sexo, defaultTalla }: SeguimientoFormProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabId>('nutricional')
   const [saving, setSaving] = useState(false)
@@ -48,6 +49,7 @@ export function SeguimientoForm({ fichaId, sexo }: SeguimientoFormProps) {
     resolver: zodResolver(seguimientoSchema),
     defaultValues: {
       fecha_consulta: getTodayString(),
+      talla_m: defaultTalla ?? undefined,
       motivo_consulta: '',
       diagnostico_clinico: '',
       recordatorio_24h: '',
@@ -85,7 +87,9 @@ export function SeguimientoForm({ fichaId, sexo }: SeguimientoFormProps) {
         throw new Error(body.error ?? 'Error al guardar el seguimiento')
       }
 
-      router.push(`/fichas/${fichaId}`)
+      const body = await res.json()
+      const nuevaFichaId = body.data?.id ?? fichaId
+      router.push(`/fichas/${nuevaFichaId}`)
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')

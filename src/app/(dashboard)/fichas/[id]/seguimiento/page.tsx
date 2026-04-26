@@ -21,6 +21,7 @@ export default async function SeguimientoPage({ params }: PageProps) {
     .select(`
       id,
       paciente_id,
+      talla_m,
       pacientes (
         nombre,
         sexo,
@@ -94,7 +95,11 @@ export default async function SeguimientoPage({ params }: PageProps) {
         </CardContent>
       </Card>
 
-      <SeguimientoForm fichaId={params.id} sexo={paciente?.sexo ?? 'Femenino'} />
+      <SeguimientoForm
+        fichaId={params.id}
+        sexo={paciente?.sexo ?? 'Femenino'}
+        defaultTalla={(ficha as any).talla_m ?? null}
+      />
     </div>
   )
 }

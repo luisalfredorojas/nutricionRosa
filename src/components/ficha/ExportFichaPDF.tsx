@@ -7,11 +7,12 @@ import { Download } from 'lucide-react'
 interface ExportFichaPDFProps {
   fichaId: string
   pacienteId: string
+  pacienteNombre?: string
   targetId?: string
   label?: string
 }
 
-export function ExportFichaPDF({ fichaId, targetId, label = 'Exportar PDF' }: ExportFichaPDFProps) {
+export function ExportFichaPDF({ fichaId, pacienteNombre, targetId, label = 'Exportar PDF' }: ExportFichaPDFProps) {
   const [exporting, setExporting] = useState(false)
 
   const handleExport = async () => {
@@ -66,8 +67,11 @@ export function ExportFichaPDF({ fichaId, targetId, label = 'Exportar PDF' }: Ex
       }
 
       const date = new Date().toISOString().split('T')[0]
+      const safeName = pacienteNombre
+        ? pacienteNombre.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+        : fichaId.slice(0, 8)
       const prefix = targetId ? 'tabla' : 'ficha'
-      pdf.save(`${prefix}-${fichaId.slice(0, 8)}-${date}.pdf`)
+      pdf.save(`${prefix}-${safeName}-${date}.pdf`)
     } catch (err) {
       console.error('Error exportando PDF:', err)
     } finally {
