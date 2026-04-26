@@ -105,7 +105,7 @@ export function DatosPersonalesForm({ form }: DatosPersonalesFormProps) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="correo">Correo electrónico</Label>
+        <Label htmlFor="correo">Correo electrónico *</Label>
         <Input
           id="correo"
           type="email"

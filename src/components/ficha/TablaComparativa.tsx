@@ -11,6 +11,7 @@ interface Row {
   talla_m: number | null
   imc: number | null
   porcentaje_masa_grasa: number | null
+  porcentaje_masa_muscular: number | null
   circunferencia_cintura: number | null
   circunferencia_cadera: number | null
   circunferencia_brazo: number | null
@@ -52,6 +53,7 @@ export function TablaComparativa({ pacienteId, currentFichaId }: TablaComparativ
           talla_m: f.talla_m ?? null,
           imc: f.imc ?? null,
           porcentaje_masa_grasa: f.porcentaje_masa_grasa ?? null,
+          porcentaje_masa_muscular: f.porcentaje_masa_muscular ?? null,
           circunferencia_cintura: f.circunferencia_cintura ?? null,
           circunferencia_cadera: f.circunferencia_cadera ?? null,
           circunferencia_brazo: f.circunferencia_brazo ?? null,
@@ -91,9 +93,9 @@ export function TablaComparativa({ pacienteId, currentFichaId }: TablaComparativ
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div id={`tabla-comparativa-${pacienteId}`} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[720px]">
+        <table className="w-full text-sm min-w-[820px]">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
               <th className="text-left px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Fecha consulta</th>
@@ -101,6 +103,7 @@ export function TablaComparativa({ pacienteId, currentFichaId }: TablaComparativ
               <th className="text-center px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">IMC</th>
               <th className="text-center px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Peso (kg)</th>
               <th className="text-center px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">% Grasa</th>
+              <th className="text-center px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">% Músculo</th>
               <th className="text-center px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Cintura (cm)</th>
               <th className="text-center px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Cadera (cm)</th>
               <th className="text-center px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Brazo (cm)</th>
@@ -132,6 +135,9 @@ export function TablaComparativa({ pacienteId, currentFichaId }: TablaComparativ
                   </td>
                   <td className="px-4 py-2.5 text-center text-rosa-700">
                     {r.porcentaje_masa_grasa != null ? `${formatDecimal(r.porcentaje_masa_grasa, 1)}%` : '—'}
+                  </td>
+                  <td className="px-4 py-2.5 text-center text-rosa-700">
+                    {r.porcentaje_masa_muscular != null ? `${formatDecimal(r.porcentaje_masa_muscular, 1)}%` : '—'}
                   </td>
                   <td className="px-4 py-2.5 text-center text-rosa-700">
                     {formatDecimal(r.circunferencia_cintura, 1)}

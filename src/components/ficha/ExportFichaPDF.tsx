@@ -7,9 +7,11 @@ import { Download } from 'lucide-react'
 interface ExportFichaPDFProps {
   fichaId: string
   pacienteId: string
+  targetId?: string
+  label?: string
 }
 
-export function ExportFichaPDF({ fichaId }: ExportFichaPDFProps) {
+export function ExportFichaPDF({ fichaId, targetId, label = 'Exportar PDF' }: ExportFichaPDFProps) {
   const [exporting, setExporting] = useState(false)
 
   const handleExport = async () => {
@@ -21,9 +23,10 @@ export function ExportFichaPDF({ fichaId }: ExportFichaPDFProps) {
       ])
       const html2canvas = (html2canvasMod as any).default ?? html2canvasMod
 
-      const el = document.getElementById(`ficha-export-${fichaId}`)
+      const elementId = targetId ?? `ficha-export-${fichaId}`
+      const el = document.getElementById(elementId)
       if (!el) {
-        console.error('No se encontró el contenedor exportable')
+        console.error('No se encontró el contenedor exportable:', elementId)
         return
       }
 
@@ -34,42 +37,39 @@ export function ExportFichaPDF({ fichaId }: ExportFichaPDFProps) {
       })
 
       const imgData = canvas.toDataURL('image/png')
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const isLandscape = canvas.width > canvas.height
+      const pdf = new jsPDF({
+        orientation: isLandscape ? 'landscape' : 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      })
 
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
       const margin = 10
       const usableWidth = pageWidth - margin * 2
-      const imgProps = (canvas.width && canvas.height) ? { w: canvas.width, h: canvas.height } : { w: 1, h: 1 }
-      const ratio = imgProps.h / imgProps.w
+      const ratio = canvas.height / canvas.width
       const imgWidth = usableWidth
       const imgHeight = imgWidth * ratio
 
       if (imgHeight <= pageHeight - margin * 2) {
         pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight)
       } else {
-        // Multi-page slicing
         let position = 0
         const pageUsable = pageHeight - margin * 2
         const totalPages = Math.ceil(imgHeight / pageUsable)
         for (let p = 0; p < totalPages; p++) {
           if (p > 0) pdf.addPage()
-          pdf.addImage(
-            imgData,
-            'PNG',
-            margin,
-            margin - position,
-            imgWidth,
-            imgHeight
-          )
+          pdf.addImage(imgData, 'PNG', margin, margin - position, imgWidth, imgHeight)
           position += pageUsable
         }
       }
 
       const date = new Date().toISOString().split('T')[0]
-      pdf.save(`ficha-${fichaId.slice(0, 8)}-${date}.pdf`)
+      const prefix = targetId ? 'tabla' : 'ficha'
+      pdf.save(`${prefix}-${fichaId.slice(0, 8)}-${date}.pdf`)
     } catch (err) {
-      console.error('Error exportando ficha PDF:', err)
+      console.error('Error exportando PDF:', err)
     } finally {
       setExporting(false)
     }
@@ -78,7 +78,7 @@ export function ExportFichaPDF({ fichaId }: ExportFichaPDFProps) {
   return (
     <Button onClick={handleExport} disabled={exporting} variant="outline" size="sm">
       <Download className="h-4 w-4 mr-2" />
-      {exporting ? 'Exportando...' : 'Exportar PDF'}
+      {exporting ? 'Exportando...' : label}
     </Button>
   )
 }

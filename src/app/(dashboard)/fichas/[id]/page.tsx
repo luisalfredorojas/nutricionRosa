@@ -115,7 +115,12 @@ export default async function FichaDetailPage({ params }: PageProps) {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <ExportFichaPDF fichaId={params.id} pacienteId={(ficha as any).paciente_id ?? ''} />
+          <ExportFichaPDF
+            fichaId={params.id}
+            pacienteId={(ficha as any).paciente_id ?? ''}
+            targetId={`tabla-comparativa-${(ficha as any).paciente_id}`}
+            label="Descargar Tabla"
+          />
           <Link href={`/fichas/${params.id}/seguimiento`}>
             <Button size="sm" className="gap-1.5">
               <Plus className="h-4 w-4" />
@@ -201,6 +206,12 @@ export default async function FichaDetailPage({ params }: PageProps) {
                 <div className="mt-4">
                   <p className="text-xs text-rosa-500 font-medium uppercase tracking-wide mb-1">No le gusta comer</p>
                   <p className="text-sm text-rosa-800">{ficha.no_le_gusta_comer}</p>
+                </div>
+              )}
+              {(ficha as any).le_gusta_comer && (
+                <div className="mt-4">
+                  <p className="text-xs text-rosa-500 font-medium uppercase tracking-wide mb-1">Le gusta comer</p>
+                  <p className="text-sm text-rosa-800">{(ficha as any).le_gusta_comer}</p>
                 </div>
               )}
             </CardContent>

@@ -6,7 +6,7 @@ export const datosPersonalesSchema = z.object({
   sexo: z.enum(['Femenino', 'Masculino'], {
     errorMap: () => ({ message: 'Selecciona el sexo' }),
   }),
-  correo: z.string().email('Correo inválido').optional().or(z.literal('')),
+  correo: z.string().email('Correo electrónico inválido').min(1, 'El correo es requerido'),
   ciudad: z.string().optional(),
   tipo_paciente: z.enum(['privado', 'empresa']).default('empresa'),
   empresa_id: z.string().uuid('Empresa inválida').optional().or(z.literal('')),

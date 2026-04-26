@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
 import { Button } from '@/components/ui/button'
-import { Download, Upload, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { Download, Upload, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 
 interface BulkUploadProps {
   empresaId: string
@@ -13,15 +13,17 @@ interface BulkUploadProps {
 
 interface RowResult {
   fila: number
-  estado: 'creado' | 'saltado' | 'error'
+  estado: 'creado' | 'error'
   mensaje?: string
   nombre?: string
+  correo?: string
+  tipo?: 'inicial' | 'seguimiento'
 }
 
 interface Resumen {
   total: number
-  creados: number
-  saltados: number
+  nuevos: number
+  seguimientos: number
   errores: number
 }
 
@@ -31,6 +33,7 @@ const TEMPLATE_COLUMNS = [
   'Fecha',
   'Sexo',
   'Fecha Nac.',
+  'Correo',
   'Peso',
   'Talla',
   'IMC',
@@ -47,6 +50,13 @@ const TEMPLATE_COLUMNS = [
   'Actividad',
   'Descanso',
   'Estrés',
+  'Digestión',
+  'Agua',
+  'Frutas',
+  'Vegetales',
+  'Café',
+  'Alcohol',
+  'Tabaco',
 ]
 
 const TEMPLATE_EXAMPLE: Record<string, string | number> = {
@@ -54,6 +64,7 @@ const TEMPLATE_EXAMPLE: Record<string, string | number> = {
   'Fecha': new Date().toISOString().slice(0, 10),
   'Sexo': 'Femenino',
   'Fecha Nac.': '1990-05-15',
+  'Correo': 'ana.perez@ejemplo.com',
   'Peso': '68.5 kg',
   'Talla': '1.65 m',
   'IMC': '',
@@ -70,6 +81,13 @@ const TEMPLATE_EXAMPLE: Record<string, string | number> = {
   'Actividad': 'Moderado (3 a 4 veces por semana)',
   'Descanso': '5-7 horas',
   'Estrés': 'Medio',
+  'Digestión': 'Normal',
+  'Agua': 'Entre 1 - 1,5 lts',
+  'Frutas': '> 4 veces por semana',
+  'Vegetales': '> 3 veces por semana',
+  'Café': 'Irregular',
+  'Alcohol': 'No consume',
+  'Tabaco': 'No consume',
 }
 
 export function BulkUpload({ empresaId, empresaNombre }: BulkUploadProps) {
@@ -142,7 +160,7 @@ export function BulkUpload({ empresaId, empresaNombre }: BulkUploadProps) {
         <div>
           <h2 className="text-base font-semibold text-rosa-800">Carga masiva por Excel</h2>
           <p className="text-xs text-rosa-400 mt-0.5">
-            Sube un archivo .xlsx con pacientes y su ficha inicial. Duplicados (nombre + correo) se saltan.
+            El correo identifica al paciente. Múltiples filas por correo = seguimientos. Correo obligatorio.
           </p>
         </div>
         <div className="flex gap-2">
@@ -180,15 +198,15 @@ export function BulkUpload({ empresaId, empresaNombre }: BulkUploadProps) {
           <div className="grid grid-cols-4 gap-2 text-center text-sm">
             <div className="p-2 rounded-lg bg-gray-50 border border-gray-200">
               <div className="font-semibold text-rosa-800">{resumen.total}</div>
-              <div className="text-xs text-rosa-400">Total</div>
+              <div className="text-xs text-rosa-400">Total filas</div>
             </div>
             <div className="p-2 rounded-lg bg-green-50 border border-green-200">
-              <div className="font-semibold text-green-700">{resumen.creados}</div>
-              <div className="text-xs text-green-600">Creados</div>
+              <div className="font-semibold text-green-700">{resumen.nuevos}</div>
+              <div className="text-xs text-green-600">Nuevos pacientes</div>
             </div>
-            <div className="p-2 rounded-lg bg-yellow-50 border border-yellow-200">
-              <div className="font-semibold text-yellow-700">{resumen.saltados}</div>
-              <div className="text-xs text-yellow-600">Saltados</div>
+            <div className="p-2 rounded-lg bg-blue-50 border border-blue-200">
+              <div className="font-semibold text-blue-700">{resumen.seguimientos}</div>
+              <div className="text-xs text-blue-600">Seguimientos</div>
             </div>
             <div className="p-2 rounded-lg bg-red-50 border border-red-200">
               <div className="font-semibold text-red-700">{resumen.errores}</div>
@@ -203,7 +221,9 @@ export function BulkUpload({ empresaId, empresaNombre }: BulkUploadProps) {
                   <tr>
                     <th className="px-2 py-1.5 text-left font-semibold text-rosa-600">Fila</th>
                     <th className="px-2 py-1.5 text-left font-semibold text-rosa-600">Estado</th>
+                    <th className="px-2 py-1.5 text-left font-semibold text-rosa-600">Tipo</th>
                     <th className="px-2 py-1.5 text-left font-semibold text-rosa-600">Nombre</th>
+                    <th className="px-2 py-1.5 text-left font-semibold text-rosa-600">Correo</th>
                     <th className="px-2 py-1.5 text-left font-semibold text-rosa-600">Detalle</th>
                   </tr>
                 </thead>
@@ -214,12 +234,7 @@ export function BulkUpload({ empresaId, empresaNombre }: BulkUploadProps) {
                       <td className="px-2 py-1.5">
                         {r.estado === 'creado' && (
                           <span className="inline-flex items-center gap-1 text-green-700">
-                            <CheckCircle2 className="h-3 w-3" /> Creado
-                          </span>
-                        )}
-                        {r.estado === 'saltado' && (
-                          <span className="inline-flex items-center gap-1 text-yellow-700">
-                            <AlertCircle className="h-3 w-3" /> Saltado
+                            <CheckCircle2 className="h-3 w-3" /> OK
                           </span>
                         )}
                         {r.estado === 'error' && (
@@ -228,7 +243,13 @@ export function BulkUpload({ empresaId, empresaNombre }: BulkUploadProps) {
                           </span>
                         )}
                       </td>
+                      <td className="px-2 py-1.5">
+                        {r.tipo === 'inicial' && <span className="text-green-700 font-medium">Inicial</span>}
+                        {r.tipo === 'seguimiento' && <span className="text-blue-700 font-medium">Seguimiento</span>}
+                        {!r.tipo && '—'}
+                      </td>
                       <td className="px-2 py-1.5 text-rosa-700">{r.nombre ?? '—'}</td>
+                      <td className="px-2 py-1.5 text-rosa-500">{r.correo ?? '—'}</td>
                       <td className="px-2 py-1.5 text-rosa-500">{r.mensaje ?? '—'}</td>
                     </tr>
                   ))}
