@@ -137,6 +137,11 @@ function cleanString(raw: unknown): string | null {
   return s
 }
 
+function daysBetween(dateA: string, dateB: string): number {
+  const msPerDay = 1000 * 60 * 60 * 24
+  return Math.floor((new Date(dateB).getTime() - new Date(dateA).getTime()) / msPerDay)
+}
+
 function mapRow(raw: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(raw)) {
@@ -255,6 +260,44 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       })
     }
 
+    // ── 2.5. Validar mínimo 14 días entre fichas del mismo paciente (dentro del archivo) ──
+    const invalidGroups = new Set<string>()
+
+    for (const [correoKey, groupRows] of groups) {
+      const withDates = groupRows.filter((r) => r.row.fecha_consulta)
+      for (let i = 1; i < withDates.length; i++) {
+        const prevDate = withDates[i - 1].row.fecha_consulta!
+        const currDate = withDates[i].row.fecha_consulta!
+        const dias = daysBetween(prevDate, currDate)
+        if (dias < 14) {
+          invalidGroups.add(correoKey)
+          errores++
+          results.push({
+            fila: withDates[i].filaNum,
+            estado: 'error',
+            nombre: withDates[i].row.nombre,
+            correo: withDates[i].row.correo,
+            mensaje: `Debe haber al menos 2 semanas (14 días) entre fichas del mismo paciente. Entre ${prevDate} y ${currDate} hay solo ${dias} día${dias === 1 ? '' : 's'}.`,
+          })
+        }
+      }
+      // Si el grupo es inválido, reportar error también en el primer row que no tenga error aún
+      if (invalidGroups.has(correoKey)) {
+        for (const { filaNum, row } of groupRows) {
+          if (!results.find((r) => r.fila === filaNum)) {
+            errores++
+            results.push({
+              fila: filaNum,
+              estado: 'error',
+              nombre: row.nombre,
+              correo: row.correo,
+              mensaje: 'Grupo cancelado: otro registro del mismo paciente no cumple la separación mínima de 2 semanas.',
+            })
+          }
+        }
+      }
+    }
+
     // ── 3. Fetch pacientes existentes de esta empresa ────────────────────
     const { data: existentes } = await supabase
       .from('pacientes')
@@ -274,6 +317,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     let seguimientos = 0
 
     for (const [correoKey, groupRows] of groups) {
+      // Saltar grupos que ya fallaron la validación de fechas
+      if (invalidGroups.has(correoKey)) continue
+
       const firstRow = groupRows[0].row
       const sexo = firstRow.sexo as SexoType
       const existingPacienteId = existentesByCorreo.get(correoKey)
@@ -370,6 +416,30 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             })
           }
           continue
+        }
+
+        // Validar que la primera fila del grupo respete 14 días desde la última ficha en BD
+        const { data: ultimaFichaDB } = await supabase
+          .from('fichas_nutricionales')
+          .select('fecha_consulta')
+          .eq('paciente_id', pacienteId)
+          .order('fecha_consulta', { ascending: false })
+          .limit(1)
+          .single()
+
+        if (ultimaFichaDB?.fecha_consulta && groupRows[0].row.fecha_consulta) {
+          const dias = daysBetween(ultimaFichaDB.fecha_consulta, groupRows[0].row.fecha_consulta)
+          if (dias < 14) {
+            errores += groupRows.length
+            for (const { filaNum, row } of groupRows) {
+              results.push({
+                fila: filaNum, estado: 'error',
+                nombre: row.nombre, correo: row.correo,
+                mensaje: `Debe haber al menos 2 semanas (14 días) desde la última ficha del paciente (${ultimaFichaDB.fecha_consulta}). La fecha ${row.fecha_consulta} tiene solo ${dias} día${dias === 1 ? '' : 's'} de diferencia.`,
+              })
+            }
+            continue
+          }
         }
 
         // Todas las filas son seguimientos
