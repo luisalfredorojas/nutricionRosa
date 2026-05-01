@@ -4,13 +4,17 @@ import { createClient } from '@/lib/supabase/server'
 import { calcularTodosLosIndicadores } from '@/lib/formulas/indicadores'
 import type { SexoType } from '@/types/ficha'
 
-const rowSchema = z.object({
+// ── Esquemas ─────────────────────────────────────────────────────────────────
+const patientSchema = z.object({
   nombre: z.string().trim().min(2, 'Nombre requerido'),
   fecha_nacimiento: z.string().trim().min(1, 'Fecha de nacimiento requerida'),
   sexo: z.enum(['Femenino', 'Masculino']),
   correo: z.string().trim().email('Correo inválido').min(1, 'Correo requerido'),
   ciudad: z.string().trim().optional().nullable(),
-  fecha_consulta: z.string().trim().optional().nullable(),
+})
+
+const fichaSchema = z.object({
+  fecha_consulta: z.string().trim().min(1, 'Fecha de la ficha requerida'),
   peso_kg: z.number().min(1).max(500).optional().nullable(),
   talla_m: z.number().min(0.5).max(2.5).optional().nullable(),
   circunferencia_cintura: z.number().min(1).max(300).optional().nullable(),
@@ -31,7 +35,8 @@ const rowSchema = z.object({
   consumo_tabaco: z.enum(['No consume', 'Semanal', 'Mensual']).optional().nullable(),
 })
 
-type RowInput = z.infer<typeof rowSchema>
+type PatientInput = z.infer<typeof patientSchema>
+type FichaInput = z.infer<typeof fichaSchema>
 
 interface RowResult {
   fila: number
@@ -40,22 +45,34 @@ interface RowResult {
   nombre?: string
   correo?: string
   tipo?: 'inicial' | 'seguimiento'
+  ficha?: number
+}
+
+interface ParsedFicha {
+  index: number // 1-based
+  data: FichaInput
 }
 
 interface ParsedRow {
   filaNum: number
-  row: RowInput
+  patient: PatientInput
+  fichas: ParsedFicha[]
 }
 
-const HEADER_MAP: Record<string, string> = {
+// ── Mapas de cabeceras ───────────────────────────────────────────────────────
+const PATIENT_HEADER_MAP: Record<string, keyof PatientInput> = {
   'paciente': 'nombre',
-  'fecha': 'fecha_consulta',
+  'nombre': 'nombre',
   'sexo': 'sexo',
   'correo': 'correo',
   'fecha nac.': 'fecha_nacimiento',
   'fecha nac': 'fecha_nacimiento',
   'fecha nacimiento': 'fecha_nacimiento',
   'ciudad': 'ciudad',
+}
+
+const FICHA_HEADER_MAP: Record<string, keyof FichaInput> = {
+  'fecha': 'fecha_consulta',
   'peso': 'peso_kg',
   'talla': 'talla_m',
   'cintura': 'circunferencia_cintura',
@@ -93,7 +110,7 @@ const IGNORED_HEADERS = new Set([
   'riesgo met',
 ])
 
-const NUMERIC_FIELDS = new Set([
+const NUMERIC_FICHA_FIELDS = new Set<keyof FichaInput>([
   'peso_kg',
   'talla_m',
   'circunferencia_cintura',
@@ -104,6 +121,7 @@ const NUMERIC_FIELDS = new Set([
   'grasa_visceral',
 ])
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
 function stripNumeric(raw: unknown): number | null {
   if (raw === null || raw === undefined) return null
   if (typeof raw === 'number') return Number.isFinite(raw) ? raw : null
@@ -142,33 +160,87 @@ function daysBetween(dateA: string, dateB: string): number {
   return Math.floor((new Date(dateB).getTime() - new Date(dateA).getTime()) / msPerDay)
 }
 
-function mapRow(raw: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(raw)) {
-    const norm = key.trim().toLowerCase()
-    if (IGNORED_HEADERS.has(norm)) continue
-    const field = HEADER_MAP[norm]
-    if (!field) continue
-    if (NUMERIC_FIELDS.has(field)) {
-      out[field] = stripNumeric(value)
-    } else if (field === 'fecha_consulta' || field === 'fecha_nacimiento') {
-      out[field] = parseDate(value)
-    } else {
-      out[field] = cleanString(value)
-    }
+/**
+ * Extrae el sufijo (N) del header. Devuelve { base, index }.
+ * Ej. "Peso (1)" → { base: "peso", index: 1 }
+ *     "Correo"   → { base: "correo", index: null }
+ */
+function parseHeaderSuffix(header: string): { base: string; index: number | null } {
+  const m = header.trim().match(/^(.*?)\s*\((\d+)\)\s*$/)
+  if (m) {
+    return { base: m[1].trim().toLowerCase(), index: parseInt(m[2], 10) }
   }
-  return out
+  return { base: header.trim().toLowerCase(), index: null }
 }
 
-function buildFichaPayload(row: RowInput, pacienteId: string, tipo: 'inicial' | 'seguimiento', fichaPadreId: string | null, sexo: SexoType) {
+function isFichaEmpty(f: Partial<FichaInput>): boolean {
+  // Una ficha se considera vacía si no tiene fecha ni ningún dato numérico/texto
+  if (f.fecha_consulta) return false
+  for (const key of Object.keys(f) as (keyof FichaInput)[]) {
+    const v = f[key]
+    if (v !== null && v !== undefined && v !== '') return false
+  }
+  return true
+}
+
+/**
+ * Parsea una fila cruda del Excel y devuelve los campos del paciente +
+ * un mapa indexado de fichas detectadas por el sufijo (N).
+ */
+function mapRow(raw: Record<string, unknown>): {
+  patient: Record<string, unknown>
+  fichas: Map<number, Record<string, unknown>>
+} {
+  const patient: Record<string, unknown> = {}
+  const fichas = new Map<number, Record<string, unknown>>()
+
+  for (const [rawKey, value] of Object.entries(raw)) {
+    const { base, index } = parseHeaderSuffix(rawKey)
+    if (IGNORED_HEADERS.has(base)) continue
+
+    if (index === null) {
+      // Campo del paciente (sin sufijo)
+      const field = PATIENT_HEADER_MAP[base]
+      if (!field) continue
+      if (field === 'fecha_nacimiento') {
+        patient[field] = parseDate(value)
+      } else {
+        patient[field] = cleanString(value)
+      }
+    } else {
+      // Campo de ficha (con sufijo)
+      const field = FICHA_HEADER_MAP[base]
+      if (!field) continue
+      if (!fichas.has(index)) fichas.set(index, {})
+      const target = fichas.get(index)!
+      if (NUMERIC_FICHA_FIELDS.has(field)) {
+        target[field] = stripNumeric(value)
+      } else if (field === 'fecha_consulta') {
+        target[field] = parseDate(value)
+      } else {
+        target[field] = cleanString(value)
+      }
+    }
+  }
+
+  return { patient, fichas }
+}
+
+function buildFichaPayload(
+  ficha: FichaInput,
+  pacienteId: string,
+  tipo: 'inicial' | 'seguimiento',
+  fichaPadreId: string | null,
+  sexo: SexoType
+) {
   const indicadores = calcularTodosLosIndicadores({
-    pesoKg: row.peso_kg ?? null,
-    tallaM: row.talla_m ?? null,
-    cintura: row.circunferencia_cintura ?? null,
-    cadera: row.circunferencia_cadera ?? null,
-    porcentajeGrasa: row.porcentaje_masa_grasa ?? null,
-    porcentajeMusculo: row.porcentaje_masa_muscular ?? null,
-    grasaVisceral: row.grasa_visceral ?? null,
+    pesoKg: ficha.peso_kg ?? null,
+    tallaM: ficha.talla_m ?? null,
+    cintura: ficha.circunferencia_cintura ?? null,
+    cadera: ficha.circunferencia_cadera ?? null,
+    porcentajeGrasa: ficha.porcentaje_masa_grasa ?? null,
+    porcentajeMusculo: ficha.porcentaje_masa_muscular ?? null,
+    grasaVisceral: ficha.grasa_visceral ?? null,
     sexo,
   })
 
@@ -176,25 +248,25 @@ function buildFichaPayload(row: RowInput, pacienteId: string, tipo: 'inicial' | 
     paciente_id: pacienteId,
     tipo,
     ficha_padre_id: fichaPadreId,
-    fecha_consulta: row.fecha_consulta ?? new Date().toISOString().slice(0, 10),
-    peso_kg: row.peso_kg ?? null,
-    talla_m: row.talla_m ?? null,
-    circunferencia_cintura: row.circunferencia_cintura ?? null,
-    circunferencia_cadera: row.circunferencia_cadera ?? null,
-    porcentaje_masa_grasa: row.porcentaje_masa_grasa ?? null,
-    porcentaje_masa_muscular: row.porcentaje_masa_muscular ?? null,
-    edad_metabolica: row.edad_metabolica ?? null,
-    grasa_visceral: row.grasa_visceral ?? null,
-    actividad_fisica: row.actividad_fisica ?? null,
-    descanso: row.descanso ?? null,
-    nivel_estres: row.nivel_estres ?? null,
-    digestion: row.digestion ?? null,
-    consumo_agua: row.consumo_agua ?? null,
-    consumo_frutas: row.consumo_frutas ?? null,
-    consumo_vegetales: row.consumo_vegetales ?? null,
-    consumo_cafe: row.consumo_cafe ?? null,
-    consumo_alcohol: row.consumo_alcohol ?? null,
-    consumo_tabaco: row.consumo_tabaco ?? null,
+    fecha_consulta: ficha.fecha_consulta,
+    peso_kg: ficha.peso_kg ?? null,
+    talla_m: ficha.talla_m ?? null,
+    circunferencia_cintura: ficha.circunferencia_cintura ?? null,
+    circunferencia_cadera: ficha.circunferencia_cadera ?? null,
+    porcentaje_masa_grasa: ficha.porcentaje_masa_grasa ?? null,
+    porcentaje_masa_muscular: ficha.porcentaje_masa_muscular ?? null,
+    edad_metabolica: ficha.edad_metabolica ?? null,
+    grasa_visceral: ficha.grasa_visceral ?? null,
+    actividad_fisica: ficha.actividad_fisica ?? null,
+    descanso: ficha.descanso ?? null,
+    nivel_estres: ficha.nivel_estres ?? null,
+    digestion: ficha.digestion ?? null,
+    consumo_agua: ficha.consumo_agua ?? null,
+    consumo_frutas: ficha.consumo_frutas ?? null,
+    consumo_vegetales: ficha.consumo_vegetales ?? null,
+    consumo_cafe: ficha.consumo_cafe ?? null,
+    consumo_alcohol: ficha.consumo_alcohol ?? null,
+    consumo_tabaco: ficha.consumo_tabaco ?? null,
     peso_ideal: indicadores.pesoIdeal,
     dx_grasa: indicadores.dxGrasa,
     dx_musculo: indicadores.dxMusculo,
@@ -224,81 +296,118 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: 'No hay filas para procesar' }, { status: 400 })
     }
 
-    // ── 1. Parse y validar todas las filas ──────────────────────────────
+    // ── 1. Parse y validar paciente + fichas por fila ──────────────────────
     const parsed: ParsedRow[] = []
     const results: RowResult[] = []
     let errores = 0
 
     for (let i = 0; i < rowsInput.length; i++) {
       const filaNum = i + 2
-      const mapped = mapRow(rowsInput[i] as Record<string, unknown>)
-      const result = rowSchema.safeParse(mapped)
+      const { patient: rawPatient, fichas: rawFichas } = mapRow(rowsInput[i] as Record<string, unknown>)
 
-      if (!result.success) {
+      const patientResult = patientSchema.safeParse(rawPatient)
+      if (!patientResult.success) {
         errores++
-        const msg = result.error.issues
+        const msg = patientResult.error.issues
           .map((iss) => `${iss.path.join('.')}: ${iss.message}`)
           .join('; ')
-        results.push({ fila: filaNum, estado: 'error', mensaje: msg })
-      } else {
-        parsed.push({ filaNum, row: result.data })
+        results.push({ fila: filaNum, estado: 'error', mensaje: `Datos del paciente: ${msg}` })
+        continue
       }
+
+      // Validar y filtrar fichas no vacías, ordenadas por índice ascendente
+      const fichaIndexes = Array.from(rawFichas.keys()).sort((a, b) => a - b)
+      const validFichas: ParsedFicha[] = []
+      let rowHasError = false
+
+      for (const idx of fichaIndexes) {
+        const rawFicha = rawFichas.get(idx)!
+        if (isFichaEmpty(rawFicha)) continue
+
+        const fichaResult = fichaSchema.safeParse(rawFicha)
+        if (!fichaResult.success) {
+          errores++
+          rowHasError = true
+          const msg = fichaResult.error.issues
+            .map((iss) => `${iss.path.join('.')}: ${iss.message}`)
+            .join('; ')
+          results.push({
+            fila: filaNum,
+            estado: 'error',
+            nombre: patientResult.data.nombre,
+            correo: patientResult.data.correo,
+            ficha: idx,
+            mensaje: `Ficha (${idx}): ${msg}`,
+          })
+          continue
+        }
+        validFichas.push({ index: idx, data: fichaResult.data })
+      }
+
+      if (rowHasError) continue
+      if (validFichas.length === 0) {
+        errores++
+        results.push({
+          fila: filaNum,
+          estado: 'error',
+          nombre: patientResult.data.nombre,
+          correo: patientResult.data.correo,
+          mensaje: 'No se encontró ninguna ficha con datos. Completa al menos la ficha (1).',
+        })
+        continue
+      }
+
+      parsed.push({ filaNum, patient: patientResult.data, fichas: validFichas })
     }
 
-    // ── 2. Agrupar por correo y ordenar por fecha_consulta ASC ──────────
-    const groups = new Map<string, ParsedRow[]>()
-    for (const item of parsed) {
-      const key = item.row.correo.toLowerCase()
-      if (!groups.has(key)) groups.set(key, [])
-      groups.get(key)!.push(item)
-    }
-    for (const rows of groups.values()) {
-      rows.sort((a, b) => {
-        const da = a.row.fecha_consulta ?? '9999'
-        const db = b.row.fecha_consulta ?? '9999'
-        return da < db ? -1 : da > db ? 1 : 0
-      })
-    }
-
-    // ── 2.5. Validar mínimo 14 días entre fichas del mismo paciente (dentro del archivo) ──
-    const invalidGroups = new Set<string>()
-
-    for (const [correoKey, groupRows] of groups) {
-      const withDates = groupRows.filter((r) => r.row.fecha_consulta)
-      for (let i = 1; i < withDates.length; i++) {
-        const prevDate = withDates[i - 1].row.fecha_consulta!
-        const currDate = withDates[i].row.fecha_consulta!
-        const dias = daysBetween(prevDate, currDate)
+    // ── 2. Validar mínimo 14 días entre fichas consecutivas (por fila) ─────
+    const invalidRows = new Set<number>()
+    for (const row of parsed) {
+      // ordenar por fecha_consulta ASC para validar separación
+      const sorted = [...row.fichas].sort((a, b) =>
+        a.data.fecha_consulta < b.data.fecha_consulta ? -1 : a.data.fecha_consulta > b.data.fecha_consulta ? 1 : 0
+      )
+      for (let i = 1; i < sorted.length; i++) {
+        const prev = sorted[i - 1].data.fecha_consulta
+        const curr = sorted[i].data.fecha_consulta
+        const dias = daysBetween(prev, curr)
         if (dias < 14) {
-          invalidGroups.add(correoKey)
+          invalidRows.add(row.filaNum)
           errores++
           results.push({
-            fila: withDates[i].filaNum,
+            fila: row.filaNum,
             estado: 'error',
-            nombre: withDates[i].row.nombre,
-            correo: withDates[i].row.correo,
-            mensaje: `Debe haber al menos 2 semanas (14 días) entre fichas del mismo paciente. Entre ${prevDate} y ${currDate} hay solo ${dias} día${dias === 1 ? '' : 's'}.`,
+            nombre: row.patient.nombre,
+            correo: row.patient.correo,
+            ficha: sorted[i].index,
+            mensaje: `Debe haber al menos 14 días entre fichas. Entre ficha (${sorted[i - 1].index}) ${prev} y ficha (${sorted[i].index}) ${curr} hay solo ${dias} día${dias === 1 ? '' : 's'}.`,
           })
         }
       }
-      // Si el grupo es inválido, reportar error también en el primer row que no tenga error aún
-      if (invalidGroups.has(correoKey)) {
-        for (const { filaNum, row } of groupRows) {
-          if (!results.find((r) => r.fila === filaNum)) {
-            errores++
-            results.push({
-              fila: filaNum,
-              estado: 'error',
-              nombre: row.nombre,
-              correo: row.correo,
-              mensaje: 'Grupo cancelado: otro registro del mismo paciente no cumple la separación mínima de 2 semanas.',
-            })
-          }
-        }
+    }
+
+    // ── 3. Detectar correos duplicados dentro del archivo ──────────────────
+    const correoCount = new Map<string, number>()
+    for (const row of parsed) {
+      const key = row.patient.correo.toLowerCase()
+      correoCount.set(key, (correoCount.get(key) ?? 0) + 1)
+    }
+    for (const row of parsed) {
+      const key = row.patient.correo.toLowerCase()
+      if ((correoCount.get(key) ?? 0) > 1 && !invalidRows.has(row.filaNum)) {
+        invalidRows.add(row.filaNum)
+        errores++
+        results.push({
+          fila: row.filaNum,
+          estado: 'error',
+          nombre: row.patient.nombre,
+          correo: row.patient.correo,
+          mensaje: 'Correo repetido en el archivo. Cada paciente debe estar en una sola fila con todas sus fichas.',
+        })
       }
     }
 
-    // ── 3. Fetch pacientes existentes de esta empresa ────────────────────
+    // ── 4. Fetch pacientes existentes de esta empresa ──────────────────────
     const { data: existentes } = await supabase
       .from('pacientes')
       .select('id, correo')
@@ -312,90 +421,91 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       ])
     )
 
-    // ── 4. Procesar cada grupo ───────────────────────────────────────────
+    // ── 5. Procesar cada fila ──────────────────────────────────────────────
     let nuevos = 0
     let seguimientos = 0
 
-    for (const [correoKey, groupRows] of groups) {
-      // Saltar grupos que ya fallaron la validación de fechas
-      if (invalidGroups.has(correoKey)) continue
+    for (const row of parsed) {
+      if (invalidRows.has(row.filaNum)) continue
 
-      const firstRow = groupRows[0].row
-      const sexo = firstRow.sexo as SexoType
+      const { filaNum, patient, fichas } = row
+      const sexo = patient.sexo as SexoType
+      const correoKey = patient.correo.toLowerCase()
       const existingPacienteId = existentesByCorreo.get(correoKey)
 
+      // Ordenar fichas por fecha ASC para asegurar inicial = la más antigua
+      const sortedFichas = [...fichas].sort((a, b) =>
+        a.data.fecha_consulta < b.data.fecha_consulta ? -1 : a.data.fecha_consulta > b.data.fecha_consulta ? 1 : 0
+      )
+
+      let pacienteId: string
+      let fichaInicialId: string | null = null
+      let primeraFichaPendiente = 0
+
       if (!existingPacienteId) {
-        // Paciente nuevo: crear paciente + ficha inicial
-        const { data: paciente, error: pacErr } = await supabase
+        // ── Paciente nuevo ───────────────────────────────────────────────
+        const { data: newPaciente, error: pacErr } = await supabase
           .from('pacientes')
           .insert({
-            nombre: firstRow.nombre,
-            fecha_nacimiento: firstRow.fecha_nacimiento,
+            nombre: patient.nombre,
+            fecha_nacimiento: patient.fecha_nacimiento,
             sexo,
-            correo: firstRow.correo,
-            ciudad: firstRow.ciudad ?? null,
+            correo: patient.correo,
+            ciudad: patient.ciudad ?? null,
             tipo_paciente: 'empresa',
             empresa_id: empresaId,
           })
           .select('id')
           .single()
 
-        if (pacErr || !paciente) {
-          errores += groupRows.length
-          for (const { filaNum, row } of groupRows) {
-            results.push({
-              fila: filaNum, estado: 'error',
-              nombre: row.nombre, correo: row.correo,
-              mensaje: pacErr?.message ?? 'Error creando paciente',
-            })
-          }
+        if (pacErr || !newPaciente) {
+          errores++
+          results.push({
+            fila: filaNum,
+            estado: 'error',
+            nombre: patient.nombre,
+            correo: patient.correo,
+            mensaje: pacErr?.message ?? 'Error creando paciente',
+          })
           continue
         }
+        pacienteId = newPaciente.id
 
-        const pacienteId = paciente.id
-
-        // Ficha inicial
+        // Insertar primera ficha como inicial
+        const first = sortedFichas[0]
         const { data: fichaInicial, error: fichaInicialErr } = await supabase
           .from('fichas_nutricionales')
-          .insert(buildFichaPayload(firstRow, pacienteId, 'inicial', null, sexo))
+          .insert(buildFichaPayload(first.data, pacienteId, 'inicial', null, sexo))
           .select('id')
           .single()
 
         if (fichaInicialErr || !fichaInicial) {
           errores++
           results.push({
-            fila: groupRows[0].filaNum, estado: 'error',
-            nombre: firstRow.nombre, correo: firstRow.correo,
+            fila: filaNum,
+            estado: 'error',
+            nombre: patient.nombre,
+            correo: patient.correo,
+            ficha: first.index,
             mensaje: `Paciente creado pero ficha inicial falló: ${fichaInicialErr?.message}`,
           })
           continue
         }
 
+        fichaInicialId = fichaInicial.id
         nuevos++
         results.push({
-          fila: groupRows[0].filaNum, estado: 'creado',
-          nombre: firstRow.nombre, correo: firstRow.correo,
+          fila: filaNum,
+          estado: 'creado',
+          nombre: patient.nombre,
+          correo: patient.correo,
           tipo: 'inicial',
+          ficha: first.index,
         })
-
-        // Seguimientos del mismo grupo
-        for (const { filaNum, row } of groupRows.slice(1)) {
-          const { error: segErr } = await supabase
-            .from('fichas_nutricionales')
-            .insert(buildFichaPayload(row, pacienteId, 'seguimiento', fichaInicial.id, sexo))
-
-          if (segErr) {
-            errores++
-            results.push({ fila: filaNum, estado: 'error', nombre: row.nombre, correo: row.correo, mensaje: segErr.message })
-          } else {
-            seguimientos++
-            results.push({ fila: filaNum, estado: 'creado', nombre: row.nombre, correo: row.correo, tipo: 'seguimiento' })
-          }
-        }
-
+        primeraFichaPendiente = 1
       } else {
-        // Paciente existe: buscar su ficha inicial
-        const pacienteId = existingPacienteId
+        // ── Paciente existente ────────────────────────────────────────────
+        pacienteId = existingPacienteId
 
         const { data: fichaInicialData, error: fetchErr } = await supabase
           .from('fichas_nutricionales')
@@ -407,18 +517,19 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           .single()
 
         if (fetchErr || !fichaInicialData) {
-          errores += groupRows.length
-          for (const { filaNum, row } of groupRows) {
-            results.push({
-              fila: filaNum, estado: 'error',
-              nombre: row.nombre, correo: row.correo,
-              mensaje: 'Paciente existe pero sin ficha inicial. Créala manualmente primero.',
-            })
-          }
+          errores++
+          results.push({
+            fila: filaNum,
+            estado: 'error',
+            nombre: patient.nombre,
+            correo: patient.correo,
+            mensaje: 'Paciente existe pero sin ficha inicial. Créala manualmente primero.',
+          })
           continue
         }
+        fichaInicialId = fichaInicialData.id
 
-        // Validar que la primera fila del grupo respete 14 días desde la última ficha en BD
+        // Validar separación de 14 días contra última ficha en BD
         const { data: ultimaFichaDB } = await supabase
           .from('fichas_nutricionales')
           .select('fecha_consulta')
@@ -427,34 +538,52 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           .limit(1)
           .single()
 
-        if (ultimaFichaDB?.fecha_consulta && groupRows[0].row.fecha_consulta) {
-          const dias = daysBetween(ultimaFichaDB.fecha_consulta, groupRows[0].row.fecha_consulta)
+        if (ultimaFichaDB?.fecha_consulta) {
+          const dias = daysBetween(ultimaFichaDB.fecha_consulta, sortedFichas[0].data.fecha_consulta)
           if (dias < 14) {
-            errores += groupRows.length
-            for (const { filaNum, row } of groupRows) {
-              results.push({
-                fila: filaNum, estado: 'error',
-                nombre: row.nombre, correo: row.correo,
-                mensaje: `Debe haber al menos 2 semanas (14 días) desde la última ficha del paciente (${ultimaFichaDB.fecha_consulta}). La fecha ${row.fecha_consulta} tiene solo ${dias} día${dias === 1 ? '' : 's'} de diferencia.`,
-              })
-            }
+            errores++
+            results.push({
+              fila: filaNum,
+              estado: 'error',
+              nombre: patient.nombre,
+              correo: patient.correo,
+              ficha: sortedFichas[0].index,
+              mensaje: `Debe haber al menos 14 días desde la última ficha del paciente (${ultimaFichaDB.fecha_consulta}). La fecha ${sortedFichas[0].data.fecha_consulta} tiene solo ${dias} día${dias === 1 ? '' : 's'}.`,
+            })
             continue
           }
         }
+        // Para paciente existente todas las fichas son seguimientos
+        primeraFichaPendiente = 0
+      }
 
-        // Todas las filas son seguimientos
-        for (const { filaNum, row } of groupRows) {
-          const { error: segErr } = await supabase
-            .from('fichas_nutricionales')
-            .insert(buildFichaPayload(row, pacienteId, 'seguimiento', fichaInicialData.id, row.sexo as SexoType))
+      // Insertar fichas restantes como seguimiento
+      for (let i = primeraFichaPendiente; i < sortedFichas.length; i++) {
+        const { index, data: fichaData } = sortedFichas[i]
+        const { error: segErr } = await supabase
+          .from('fichas_nutricionales')
+          .insert(buildFichaPayload(fichaData, pacienteId, 'seguimiento', fichaInicialId, sexo))
 
-          if (segErr) {
-            errores++
-            results.push({ fila: filaNum, estado: 'error', nombre: row.nombre, correo: row.correo, mensaje: segErr.message })
-          } else {
-            seguimientos++
-            results.push({ fila: filaNum, estado: 'creado', nombre: row.nombre, correo: row.correo, tipo: 'seguimiento' })
-          }
+        if (segErr) {
+          errores++
+          results.push({
+            fila: filaNum,
+            estado: 'error',
+            nombre: patient.nombre,
+            correo: patient.correo,
+            ficha: index,
+            mensaje: segErr.message,
+          })
+        } else {
+          seguimientos++
+          results.push({
+            fila: filaNum,
+            estado: 'creado',
+            nombre: patient.nombre,
+            correo: patient.correo,
+            tipo: 'seguimiento',
+            ficha: index,
+          })
         }
       }
     }

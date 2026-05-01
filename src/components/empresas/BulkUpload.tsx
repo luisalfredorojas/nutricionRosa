@@ -18,6 +18,7 @@ interface RowResult {
   nombre?: string
   correo?: string
   tipo?: 'inicial' | 'seguimiento'
+  ficha?: number
 }
 
 interface Resumen {
@@ -27,26 +28,22 @@ interface Resumen {
   errores: number
 }
 
-const TEMPLATE_COLUMNS = [
-  'Paciente',
-  'Empresa',
+// Número de fichas que incluye la plantilla por defecto.
+// La lectura del Excel detecta automáticamente cualquier número de fichas (1), (2), (3)...
+const TEMPLATE_FICHAS = 3
+
+const PATIENT_COLUMNS = ['Paciente', 'Empresa', 'Sexo', 'Fecha Nac.', 'Correo', 'Ciudad']
+
+const FICHA_FIELDS = [
   'Fecha',
-  'Sexo',
-  'Fecha Nac.',
-  'Correo',
   'Peso',
   'Talla',
-  'IMC',
   'Cintura',
   'Cadera',
-  'ICC',
   '% Grasa',
   '% Músculo',
   'Edad Met.',
   'Gr. Visceral',
-  'Dx Grasa',
-  'Dx Músculo',
-  'Riesgo Met.',
   'Actividad',
   'Descanso',
   'Estrés',
@@ -57,37 +54,101 @@ const TEMPLATE_COLUMNS = [
   'Café',
   'Alcohol',
   'Tabaco',
+] as const
+
+function buildTemplateColumns(numFichas: number): string[] {
+  const cols = [...PATIENT_COLUMNS]
+  for (let i = 1; i <= numFichas; i++) {
+    for (const f of FICHA_FIELDS) cols.push(`${f} (${i})`)
+  }
+  return cols
+}
+
+const FICHA_EXAMPLES: Record<typeof FICHA_FIELDS[number], string>[] = [
+  // Ficha (1) — inicial
+  {
+    'Fecha': '2026-01-15',
+    'Peso': '68.5 kg',
+    'Talla': '1.65 m',
+    'Cintura': '82 cm',
+    'Cadera': '98 cm',
+    '% Grasa': '30.0%',
+    '% Músculo': '31.5%',
+    'Edad Met.': '36',
+    'Gr. Visceral': '9',
+    'Actividad': 'Bajo (1 o 2 veces por semana)',
+    'Descanso': '5-7 horas',
+    'Estrés': 'Alto',
+    'Digestión': 'Irregular',
+    'Agua': 'Menos de 1 lt',
+    'Frutas': '< 2 veces por semana',
+    'Vegetales': '< 2 veces por semana',
+    'Café': 'Todos los dias',
+    'Alcohol': 'Semanal',
+    'Tabaco': 'No consume',
+  },
+  // Ficha (2) — seguimiento
+  {
+    'Fecha': '2026-02-12',
+    'Peso': '67.0 kg',
+    'Talla': '1.65 m',
+    'Cintura': '80 cm',
+    'Cadera': '97 cm',
+    '% Grasa': '28.5%',
+    '% Músculo': '32.0%',
+    'Edad Met.': '35',
+    'Gr. Visceral': '8',
+    'Actividad': 'Moderado (3 a 4 veces por semana)',
+    'Descanso': '5-7 horas',
+    'Estrés': 'Medio',
+    'Digestión': 'Normal',
+    'Agua': 'Entre 1 - 1,5 lts',
+    'Frutas': '> 4 veces por semana',
+    'Vegetales': '> 3 veces por semana',
+    'Café': 'Irregular',
+    'Alcohol': 'Mensual',
+    'Tabaco': 'No consume',
+  },
+  // Ficha (3) — seguimiento (vacía a propósito para mostrar que es opcional)
+  {
+    'Fecha': '',
+    'Peso': '',
+    'Talla': '',
+    'Cintura': '',
+    'Cadera': '',
+    '% Grasa': '',
+    '% Músculo': '',
+    'Edad Met.': '',
+    'Gr. Visceral': '',
+    'Actividad': '',
+    'Descanso': '',
+    'Estrés': '',
+    'Digestión': '',
+    'Agua': '',
+    'Frutas': '',
+    'Vegetales': '',
+    'Café': '',
+    'Alcohol': '',
+    'Tabaco': '',
+  },
 ]
 
-const TEMPLATE_EXAMPLE: Record<string, string | number> = {
-  'Paciente': 'Ana Pérez',
-  'Fecha': new Date().toISOString().slice(0, 10),
-  'Sexo': 'Femenino',
-  'Fecha Nac.': '1990-05-15',
-  'Correo': 'ana.perez@ejemplo.com',
-  'Peso': '68.5 kg',
-  'Talla': '1.65 m',
-  'IMC': '',
-  'Cintura': '80 cm',
-  'Cadera': '98 cm',
-  'ICC': '',
-  '% Grasa': '28.5%',
-  '% Músculo': '32.0%',
-  'Edad Met.': 35,
-  'Gr. Visceral': 8,
-  'Dx Grasa': '',
-  'Dx Músculo': '',
-  'Riesgo Met.': '',
-  'Actividad': 'Moderado (3 a 4 veces por semana)',
-  'Descanso': '5-7 horas',
-  'Estrés': 'Medio',
-  'Digestión': 'Normal',
-  'Agua': 'Entre 1 - 1,5 lts',
-  'Frutas': '> 4 veces por semana',
-  'Vegetales': '> 3 veces por semana',
-  'Café': 'Irregular',
-  'Alcohol': 'No consume',
-  'Tabaco': 'No consume',
+function buildTemplateExample(empresaNombre: string, numFichas: number): Record<string, string> {
+  const ex: Record<string, string> = {
+    'Paciente': 'Ana Pérez',
+    'Empresa': empresaNombre,
+    'Sexo': 'Femenino',
+    'Fecha Nac.': '1990-05-15',
+    'Correo': 'ana.perez@ejemplo.com',
+    'Ciudad': 'Santiago',
+  }
+  for (let i = 0; i < numFichas; i++) {
+    const fichaEx = FICHA_EXAMPLES[i] ?? FICHA_EXAMPLES[FICHA_EXAMPLES.length - 1]
+    for (const f of FICHA_FIELDS) {
+      ex[`${f} (${i + 1})`] = fichaEx[f]
+    }
+  }
+  return ex
 }
 
 export function BulkUpload({ empresaId, empresaNombre }: BulkUploadProps) {
@@ -99,8 +160,13 @@ export function BulkUpload({ empresaId, empresaNombre }: BulkUploadProps) {
   const [error, setError] = useState<string | null>(null)
 
   function descargarPlantilla() {
-    const example = { ...TEMPLATE_EXAMPLE, Empresa: empresaNombre }
-    const ws = XLSX.utils.json_to_sheet([example], { header: TEMPLATE_COLUMNS })
+    const headers = buildTemplateColumns(TEMPLATE_FICHAS)
+    const example = buildTemplateExample(empresaNombre, TEMPLATE_FICHAS)
+    const ws = XLSX.utils.json_to_sheet([example], { header: headers })
+    // Anchos de columna para legibilidad
+    ;(ws as unknown as { ['!cols']: { wch: number }[] })['!cols'] = headers.map((h) => ({ wch: Math.max(12, h.length + 2) }))
+    // Congelar primeras columnas de identidad + header
+    ;(ws as unknown as { ['!views']: unknown[] })['!views'] = [{ state: 'frozen', xSplit: PATIENT_COLUMNS.length, ySplit: 1 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Pacientes')
     const safeNombre = empresaNombre.replace(/[^a-z0-9]/gi, '_').toLowerCase()
@@ -160,7 +226,8 @@ export function BulkUpload({ empresaId, empresaNombre }: BulkUploadProps) {
         <div>
           <h2 className="text-base font-semibold text-rosa-800">Carga masiva por Excel</h2>
           <p className="text-xs text-rosa-400 mt-0.5">
-            El correo identifica al paciente. Múltiples filas por correo = seguimientos. Correo obligatorio.
+            Una fila por paciente. Cada ficha se ingresa en columnas con sufijo (1), (2), (3)…
+            La ficha (1) es la inicial; las siguientes son seguimientos. Correo obligatorio.
           </p>
         </div>
         <div className="flex gap-2">
@@ -221,6 +288,7 @@ export function BulkUpload({ empresaId, empresaNombre }: BulkUploadProps) {
                   <tr>
                     <th className="px-2 py-1.5 text-left font-semibold text-rosa-600">Fila</th>
                     <th className="px-2 py-1.5 text-left font-semibold text-rosa-600">Estado</th>
+                    <th className="px-2 py-1.5 text-left font-semibold text-rosa-600">Ficha</th>
                     <th className="px-2 py-1.5 text-left font-semibold text-rosa-600">Tipo</th>
                     <th className="px-2 py-1.5 text-left font-semibold text-rosa-600">Nombre</th>
                     <th className="px-2 py-1.5 text-left font-semibold text-rosa-600">Correo</th>
@@ -243,6 +311,7 @@ export function BulkUpload({ empresaId, empresaNombre }: BulkUploadProps) {
                           </span>
                         )}
                       </td>
+                      <td className="px-2 py-1.5 text-rosa-500">{r.ficha ? `(${r.ficha})` : '—'}</td>
                       <td className="px-2 py-1.5">
                         {r.tipo === 'inicial' && <span className="text-green-700 font-medium">Inicial</span>}
                         {r.tipo === 'seguimiento' && <span className="text-blue-700 font-medium">Seguimiento</span>}

@@ -4,11 +4,11 @@ import { useState } from 'react'
 import { MatrizPacientes } from './MatrizPacientes'
 import { ExportPDFButton } from './ExportPDFButton'
 import { ExportExcelButton } from './ExportExcelButton'
-import type { FichaRow } from './ColumnDefs'
+import type { PacienteRow } from './ColumnDefs'
 import { Search } from 'lucide-react'
 
 interface TablaClientWrapperProps {
-  initialData: FichaRow[]
+  initialData: PacienteRow[]
 }
 
 export function TablaClientWrapper({ initialData }: TablaClientWrapperProps) {
@@ -30,9 +30,9 @@ export function TablaClientWrapper({ initialData }: TablaClientWrapperProps) {
 
     const matchesEmpresa = !empresaFilter || row.empresa === empresaFilter
 
-    const rowDate = row.fecha_consulta
-    const matchesDesde = !fechaDesde || rowDate >= fechaDesde
-    const matchesHasta = !fechaHasta || rowDate <= fechaHasta
+    // Coincide si CUALQUIER ficha del paciente cae en el rango
+    const matchesDesde = !fechaDesde || row.fichas.some((f) => f.fecha_consulta >= fechaDesde)
+    const matchesHasta = !fechaHasta || row.fichas.some((f) => f.fecha_consulta <= fechaHasta)
 
     return matchesSearch && matchesEmpresa && matchesDesde && matchesHasta
   })

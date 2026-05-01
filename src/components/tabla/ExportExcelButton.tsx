@@ -3,11 +3,25 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { FileSpreadsheet } from 'lucide-react'
-import type { FichaRow } from './ColumnDefs'
+import { type PacienteRow, METRIC_KEYS, METRIC_LABELS } from './ColumnDefs'
 import { formatDate, formatDecimal } from '@/lib/utils'
 
 interface ExportExcelButtonProps {
-  data: FichaRow[]
+  data: PacienteRow[]
+}
+
+function metricValue(key: string, snap: PacienteRow['fichas'][number] | undefined): string {
+  if (!snap) return '—'
+  const v = (snap as unknown as Record<string, unknown>)[key]
+  if (v === null || v === undefined || v === '') return '—'
+  if (key === 'fecha_consulta') return formatDate(String(v))
+  if (key === 'peso_kg') return `${formatDecimal(v as number, 1)} kg`
+  if (key === 'talla_m') return `${v} m`
+  if (key === 'circunferencia_cintura' || key === 'circunferencia_cadera' || key === 'grasa_visceral') return `${formatDecimal(v as number, 1)} cm`
+  if (key === 'porcentaje_masa_grasa' || key === 'porcentaje_masa_muscular') return `${formatDecimal(v as number, 1)}%`
+  if (key === 'imc' || key === 'indice_cc') return formatDecimal(v as number, key === 'indice_cc' ? 2 : 1)
+  if (key === 'peso_ideal') return `${formatDecimal(v as number, 1)} kg`
+  return String(v)
 }
 
 export function ExportExcelButton({ data }: ExportExcelButtonProps) {
@@ -18,45 +32,55 @@ export function ExportExcelButton({ data }: ExportExcelButtonProps) {
     try {
       const XLSX = await import('xlsx')
 
-      const headers = [
-        'Paciente', 'Empresa', 'Fecha', 'Sexo', 'Fecha Nac.', 'Peso', 'Talla', 'IMC',
-        'Cintura', 'Cadera', 'ICC', '% Grasa', '% Músculo',
-        'Edad Met.', 'Gr. Visceral', 'Dx Grasa', 'Dx Músculo', 'Riesgo Met.',
-        'Actividad', 'Descanso', 'Estrés',
-      ]
+      const maxFichas = data.reduce((m, r) => Math.max(m, r.num_fichas), 1)
 
-      const rows = data.map((r) => [
-        r.nombre,
-        r.empresa ?? '—',
-        r.fecha_consulta ? formatDate(r.fecha_consulta) : '—',
-        r.sexo ?? '—',
-        r.fecha_nacimiento ? formatDate(r.fecha_nacimiento) : '—',
-        r.peso_kg != null ? `${formatDecimal(r.peso_kg, 1)} kg` : '—',
-        r.talla_m != null ? `${r.talla_m} m` : '—',
-        formatDecimal(r.imc, 1),
-        r.circunferencia_cintura != null ? `${formatDecimal(r.circunferencia_cintura, 1)} cm` : '—',
-        r.circunferencia_cadera != null ? `${formatDecimal(r.circunferencia_cadera, 1)} cm` : '—',
-        formatDecimal(r.indice_cc, 2),
-        r.porcentaje_masa_grasa != null ? `${formatDecimal(r.porcentaje_masa_grasa, 1)}%` : '—',
-        r.porcentaje_masa_muscular != null ? `${formatDecimal(r.porcentaje_masa_muscular, 1)}%` : '—',
-        r.edad_metabolica ?? '—',
-        formatDecimal(r.grasa_visceral, 1),
-        r.dx_grasa ?? '—',
-        r.dx_musculo ?? '—',
-        r.riesgo_metabolico ?? '—',
-        r.actividad_fisica ?? '—',
-        r.descanso ?? '—',
-        r.nivel_estres ?? '—',
-      ])
+      const baseHeaders = ['Paciente', 'Empresa', 'N° Fichas', 'Sexo', 'Edad', 'Ciudad', 'Correo']
+      const metricHeaders: string[] = []
+      for (let i = 0; i < maxFichas; i++) {
+        for (const k of METRIC_KEYS) {
+          metricHeaders.push(`${METRIC_LABELS[k]} (${i + 1})`)
+        }
+      }
+      const habitHeaders = [
+        'Digestión (últ.)', 'Descanso (últ.)', 'Estrés (últ.)', 'Agua (últ.)',
+        'Act. Física (últ.)', 'Alcohol (últ.)', 'Tabaco (últ.)',
+      ]
+      const headers = [...baseHeaders, ...metricHeaders, ...habitHeaders]
+
+      const rows = data.map((r) => {
+        const base: (string | number | null)[] = [
+          r.nombre,
+          r.empresa ?? '—',
+          r.num_fichas,
+          r.sexo ?? '—',
+          r.edad ?? '—',
+          r.ciudad ?? '—',
+          r.correo ?? '—',
+        ]
+        const metrics: string[] = []
+        for (let i = 0; i < maxFichas; i++) {
+          const snap = r.fichas[i]
+          for (const k of METRIC_KEYS) {
+            metrics.push(metricValue(k, snap))
+          }
+        }
+        const habits: string[] = [
+          r.digestion ?? '—',
+          r.descanso ?? '—',
+          r.nivel_estres ?? '—',
+          r.consumo_agua ?? '—',
+          r.actividad_fisica ?? '—',
+          r.consumo_alcohol ?? '—',
+          r.consumo_tabaco ?? '—',
+        ]
+        return [...base, ...metrics, ...habits]
+      })
 
       const aoa = [headers, ...rows]
       const ws = XLSX.utils.aoa_to_sheet(aoa)
 
-      // Freeze first row + first 3 columns
-      ;(ws as any)['!views'] = [{ state: 'frozen', xSplit: 3, ySplit: 1 }]
-
-      // Column widths for readability
-      ;(ws as any)['!cols'] = headers.map((h) => ({ wch: Math.max(10, h.length + 2) }))
+      ;(ws as unknown as { ['!views']: unknown[] })['!views'] = [{ state: 'frozen', xSplit: 3, ySplit: 1 }]
+      ;(ws as unknown as { ['!cols']: { wch: number }[] })['!cols'] = headers.map((h) => ({ wch: Math.max(10, h.length + 2) }))
 
       const wb = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(wb, ws, 'Matriz')

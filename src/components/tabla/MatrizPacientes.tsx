@@ -10,12 +10,12 @@ import {
   type ColumnFiltersState,
   flexRender,
 } from '@tanstack/react-table'
-import { columnDefs, type FichaRow } from './ColumnDefs'
+import { buildColumnDefs, type PacienteRow } from './ColumnDefs'
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface MatrizPacientesProps {
-  data: FichaRow[]
+  data: PacienteRow[]
   globalFilter?: string
 }
 
@@ -23,7 +23,7 @@ type ColumnMeta = { sticky?: boolean; stickyLeft?: number }
 
 export function MatrizPacientes({ data, globalFilter = '' }: MatrizPacientesProps) {
   const [sorting, setSorting] = useState<SortingState>([
-    { id: 'fecha_consulta', desc: true },
+    { id: 'nombre', desc: false },
   ])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 
@@ -37,9 +37,16 @@ export function MatrizPacientes({ data, globalFilter = '' }: MatrizPacientesProp
     )
   }, [data, globalFilter])
 
+  const maxFichas = useMemo(
+    () => filteredData.reduce((m, r) => Math.max(m, r.num_fichas), 1),
+    [filteredData]
+  )
+
+  const columns = useMemo(() => buildColumnDefs(maxFichas), [maxFichas])
+
   const table = useReactTable({
     data: filteredData,
-    columns: columnDefs,
+    columns,
     state: { sorting, columnFilters },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -52,7 +59,7 @@ export function MatrizPacientes({ data, globalFilter = '' }: MatrizPacientesProp
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-16 text-center">
         <p className="text-rosa-400 text-lg font-medium">No hay datos disponibles</p>
-        <p className="text-rosa-300 text-sm mt-1">Las fichas aparecerán aquí una vez registradas</p>
+        <p className="text-rosa-300 text-sm mt-1">Los pacientes aparecerán aquí una vez registradas sus fichas</p>
       </div>
     )
   }
@@ -150,7 +157,7 @@ export function MatrizPacientes({ data, globalFilter = '' }: MatrizPacientesProp
         </table>
       </div>
       <div className="px-4 py-2 border-t border-gray-200 bg-gray-50/50 text-xs text-rosa-500">
-        {table.getRowModel().rows.length} de {data.length} registros
+        {table.getRowModel().rows.length} de {data.length} pacientes · máx. {maxFichas} ficha{maxFichas === 1 ? '' : 's'} por paciente
       </div>
     </div>
   )
