@@ -1,5 +1,13 @@
 import { z } from 'zod'
 
+// Convierte "" / null / undefined → null antes de coerce, para que campos
+// opcionales numéricos no fallen con min() cuando el input HTML llega vacío.
+const optionalNumber = (min: number, max: number) =>
+  z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? null : v),
+    z.coerce.number().min(min).max(max).nullable()
+  )
+
 export const datosPersonalesSchema = z.object({
   nombre: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   fecha_nacimiento: z.string().min(1, 'La fecha de nacimiento es requerida'),
@@ -19,8 +27,8 @@ export const fichaNutricionalSchema = z.object({
   peso_kg: z.coerce.number().min(1).max(500).optional().nullable(),
   talla_m: z.coerce.number().min(0.5).max(2.5).optional().nullable(),
   circunferencia_cintura: z.coerce.number().min(1).max(300).optional().nullable(),
-  circunferencia_cadera: z.coerce.number().min(1).max(300).optional().nullable(),
-  circunferencia_brazo: z.coerce.number().min(1).max(100).optional().nullable(),
+  circunferencia_cadera: optionalNumber(1, 300).optional(),
+  circunferencia_brazo: optionalNumber(1, 100).optional(),
   fecha_ultima_menstruacion: z.string().optional().nullable(),
   recordatorio_24h: z.string().optional(),
   comentarios: z.string().optional(),
