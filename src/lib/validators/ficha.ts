@@ -24,22 +24,25 @@ export const fichaNutricionalSchema = z.object({
   fecha_consulta: z.string().min(1, 'La fecha de consulta es requerida'),
   motivo_consulta: z.string().optional(),
   diagnostico_clinico: z.string().optional(),
-  peso_kg: z.coerce.number().min(1).max(500).optional().nullable(),
-  talla_m: z.coerce.number().min(0.5).max(2.5).optional().nullable(),
-  circunferencia_cintura: z.coerce.number().min(1).max(300).optional().nullable(),
+  peso_kg: z.coerce.number().min(1, 'Mínimo 1 kg').max(500, 'Máximo 500 kg').optional().nullable(),
+  talla_m: z.coerce.number().min(0.5, 'Mínimo 0.5 m').max(2.5, 'Máximo 2.5 m').optional().nullable(),
+  circunferencia_cintura: z.coerce.number().min(1, 'Mínimo 1 cm').max(300, 'Máximo 300 cm').optional().nullable(),
   circunferencia_cadera: optionalNumber(1, 300).optional(),
   circunferencia_brazo: optionalNumber(1, 100).optional(),
-  fecha_ultima_menstruacion: z.string().optional().nullable(),
+  fecha_ultima_menstruacion: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? null : v),
+    z.string().nullable().optional()
+  ),
   recordatorio_24h: z.string().optional(),
   comentarios: z.string().optional(),
 })
 
 export const datosBalanzaSchema = z.object({
   balanza_id: z.string().uuid().optional().nullable().or(z.literal('')),
-  porcentaje_masa_grasa: z.coerce.number().min(0).max(100).optional().nullable(),
-  porcentaje_masa_muscular: z.coerce.number().min(0).max(100).optional().nullable(),
-  edad_metabolica: z.coerce.number().min(1).max(120).optional().nullable(),
-  grasa_visceral: z.coerce.number().min(0).max(50).optional().nullable(),
+  porcentaje_masa_grasa: z.coerce.number().min(0, 'Mínimo 0%').max(100, 'Máximo 100%').optional().nullable(),
+  porcentaje_masa_muscular: z.coerce.number().min(0, 'Mínimo 0%').max(100, 'Máximo 100%').optional().nullable(),
+  edad_metabolica: z.coerce.number().min(1, 'Mínimo 1 año').max(120, 'Máximo 120 años').optional().nullable(),
+  grasa_visceral: z.coerce.number().min(0, 'Mínimo 0').max(50, 'Máximo 50').optional().nullable(),
 })
 
 export const habitosSchema = z.object({

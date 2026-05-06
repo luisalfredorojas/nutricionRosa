@@ -5,6 +5,16 @@ import { calcularTodosLosIndicadores } from '@/lib/formulas/indicadores'
 import type { SexoType } from '@/types/ficha'
 import type { Database } from '@/types/database'
 
+function traducirErrorDB(msg: string): string {
+  if (msg.includes('invalid input syntax for type date')) return 'Formato de fecha inválido. Verifica los campos de fecha.'
+  if (msg.includes('invalid input syntax for type')) return 'Valor inválido en uno de los campos.'
+  if (msg.includes('violates not-null constraint')) return 'Hay campos obligatorios vacíos.'
+  if (msg.includes('duplicate key') || msg.includes('already exists')) return 'Ya existe un registro con esos datos.'
+  if (msg.includes('foreign key')) return 'Referencia inválida. El registro relacionado no existe.'
+  if (msg.includes('violates check constraint')) return 'Valor fuera del rango permitido en uno de los campos.'
+  return 'Error al guardar. Verifica los datos e intenta nuevamente.'
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
@@ -25,7 +35,7 @@ export async function GET(
       .single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 404 })
+      return NextResponse.json({ error: 'Ficha no encontrada.' }, { status: 404 })
     }
 
     return NextResponse.json({ data })
@@ -68,18 +78,18 @@ export async function PUT(
     // Build update payload explicitly
     const payload: Database['public']['Tables']['fichas_nutricionales']['Update'] = {}
 
-    if (data.fecha_consulta !== undefined) payload.fecha_consulta = data.fecha_consulta
-    if (data.motivo_consulta !== undefined) payload.motivo_consulta = data.motivo_consulta
-    if (data.diagnostico_clinico !== undefined) payload.diagnostico_clinico = data.diagnostico_clinico
+    if (data.fecha_consulta !== undefined) payload.fecha_consulta = data.fecha_consulta || undefined
+    if (data.motivo_consulta !== undefined) payload.motivo_consulta = data.motivo_consulta || null
+    if (data.diagnostico_clinico !== undefined) payload.diagnostico_clinico = data.diagnostico_clinico || null
     if (data.peso_kg !== undefined) payload.peso_kg = data.peso_kg
     if (data.talla_m !== undefined) payload.talla_m = data.talla_m
     if (data.circunferencia_cintura !== undefined) payload.circunferencia_cintura = data.circunferencia_cintura
     if (data.circunferencia_cadera !== undefined) payload.circunferencia_cadera = data.circunferencia_cadera
     if (data.circunferencia_brazo !== undefined) payload.circunferencia_brazo = data.circunferencia_brazo
-    if (data.fecha_ultima_menstruacion !== undefined) payload.fecha_ultima_menstruacion = data.fecha_ultima_menstruacion
+    if (data.fecha_ultima_menstruacion !== undefined) payload.fecha_ultima_menstruacion = data.fecha_ultima_menstruacion || null
     if (data.balanza_id !== undefined) payload.balanza_id = data.balanza_id || null
-    if (data.recordatorio_24h !== undefined) payload.recordatorio_24h = data.recordatorio_24h
-    if (data.comentarios !== undefined) payload.comentarios = data.comentarios
+    if (data.recordatorio_24h !== undefined) payload.recordatorio_24h = data.recordatorio_24h || null
+    if (data.comentarios !== undefined) payload.comentarios = data.comentarios || null
     if (data.porcentaje_masa_grasa !== undefined) payload.porcentaje_masa_grasa = data.porcentaje_masa_grasa
     if (data.porcentaje_masa_muscular !== undefined) payload.porcentaje_masa_muscular = data.porcentaje_masa_muscular
     if (data.edad_metabolica !== undefined) payload.edad_metabolica = data.edad_metabolica
@@ -94,8 +104,8 @@ export async function PUT(
     if (data.consumo_cafe !== undefined) payload.consumo_cafe = data.consumo_cafe
     if (data.consumo_alcohol !== undefined) payload.consumo_alcohol = data.consumo_alcohol
     if (data.consumo_tabaco !== undefined) payload.consumo_tabaco = data.consumo_tabaco
-    if (data.no_le_gusta_comer !== undefined) payload.no_le_gusta_comer = data.no_le_gusta_comer
-    if (data.le_gusta_comer !== undefined) payload.le_gusta_comer = data.le_gusta_comer
+    if (data.no_le_gusta_comer !== undefined) payload.no_le_gusta_comer = data.no_le_gusta_comer || null
+    if (data.le_gusta_comer !== undefined) payload.le_gusta_comer = data.le_gusta_comer || null
     if (indicadores.pesoIdeal !== null) payload.peso_ideal = indicadores.pesoIdeal
     if (indicadores.dxGrasa !== null) payload.dx_grasa = indicadores.dxGrasa
     if (indicadores.dxMusculo !== null) payload.dx_musculo = indicadores.dxMusculo
@@ -109,7 +119,7 @@ export async function PUT(
       .single()
 
     if (error || !updated) {
-      return NextResponse.json({ error: error?.message ?? 'Error actualizando ficha' }, { status: 500 })
+      return NextResponse.json({ error: traducirErrorDB(error?.message ?? '') }, { status: 500 })
     }
 
     // Update patient fields if any personal data was sent
@@ -148,7 +158,7 @@ export async function DELETE(
       .eq('id', params.id)
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: traducirErrorDB(error.message) }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })

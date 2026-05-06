@@ -4,6 +4,16 @@ import { fichaCompletaSchema } from '@/lib/validators/ficha'
 import { calcularTodosLosIndicadores } from '@/lib/formulas/indicadores'
 import type { SexoType } from '@/types/ficha'
 
+function traducirErrorDB(msg: string): string {
+  if (msg.includes('invalid input syntax for type date')) return 'Formato de fecha inválido. Verifica los campos de fecha.'
+  if (msg.includes('invalid input syntax for type')) return 'Valor inválido en uno de los campos.'
+  if (msg.includes('violates not-null constraint')) return 'Hay campos obligatorios vacíos.'
+  if (msg.includes('duplicate key') || msg.includes('already exists')) return 'Ya existe un registro con esos datos.'
+  if (msg.includes('foreign key')) return 'Referencia inválida. El registro relacionado no existe.'
+  if (msg.includes('violates check constraint')) return 'Valor fuera del rango permitido en uno de los campos.'
+  return 'Error al guardar. Verifica los datos e intenta nuevamente.'
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -88,7 +98,7 @@ export async function POST(request: NextRequest) {
 
       if (pacienteError || !paciente) {
         return NextResponse.json(
-          { error: pacienteError?.message ?? 'Error creando paciente' },
+          { error: traducirErrorDB(pacienteError?.message ?? '') },
           { status: 500 }
         )
       }
@@ -150,7 +160,7 @@ export async function POST(request: NextRequest) {
 
     if (fichaError || !ficha) {
       return NextResponse.json(
-        { error: fichaError?.message ?? 'Error creando ficha' },
+        { error: traducirErrorDB(fichaError?.message ?? '') },
         { status: 500 }
       )
     }
