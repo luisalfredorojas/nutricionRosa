@@ -83,13 +83,17 @@ function getTodayString(): string {
 interface FichaFormProps {
   defaultTipoPaciente?: 'privado' | 'empresa'
   redirectTo?: string
+  fichaId?: string
+  initialValues?: Partial<FichaCompletaInput>
 }
 
-export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo }: FichaFormProps) {
+export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId, initialValues }: FichaFormProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabId>('personales')
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<FormError | null>(null)
+
+  const isEditMode = Boolean(fichaId)
 
   const form = useForm<FichaCompletaInput>({
     resolver: zodResolver(fichaCompletaSchema),
@@ -106,6 +110,7 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo }: Ficha
       no_le_gusta_comer: '',
       le_gusta_comer: '',
       balanza_id: '',
+      ...initialValues,
     },
   })
 
@@ -146,8 +151,11 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo }: Ficha
     setFormError(null)
 
     try {
-      const res = await fetch('/api/fichas', {
-        method: 'POST',
+      const url = isEditMode ? `/api/fichas/${fichaId}` : '/api/fichas'
+      const method = isEditMode ? 'PUT' : 'POST'
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
@@ -155,7 +163,6 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo }: Ficha
       if (!res.ok) {
         const body = await res.json()
 
-        // Si el API devuelve detalles de campos inválidos, mostrarlos
         if (body.details?.fieldErrors) {
           const fields = Object.entries(body.details.fieldErrors as Record<string, string[]>)
             .map(([field, msgs]) => `${FIELD_LABELS[field] ?? field}: ${msgs[0]}`)
@@ -169,7 +176,8 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo }: Ficha
         return
       }
 
-      const destination = redirectTo ?? (form.getValues('tipo_paciente') === 'privado' ? '/privados' : '/empresas')
+      const destination = redirectTo
+        ?? (isEditMode ? `/fichas/${fichaId}` : (form.getValues('tipo_paciente') === 'privado' ? '/privados' : '/empresas'))
       router.push(destination)
       router.refresh()
     } catch {
@@ -212,7 +220,7 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo }: Ficha
           {/* Tab content */}
           <Card>
             <CardContent className="pt-6">
-              {activeTab === 'personales' && <DatosPersonalesForm form={form} />}
+              {activeTab === 'personales' && <DatosPersonalesForm form={form} disabledTipo={isEditMode} />}
               {activeTab === 'nutricional' && <FichaNutricionalForm form={form} />}
               {activeTab === 'balanza' && <DatosBalanzaForm form={form} />}
               {activeTab === 'habitos' && <HabitosForm form={form} />}
@@ -248,7 +256,7 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo }: Ficha
                 disabled={saving}
                 onClick={() => form.handleSubmit(onSubmit, onInvalid)()}
               >
-                {saving ? 'Guardando...' : 'Guardar Ficha'}
+                {saving ? 'Guardando...' : isEditMode ? 'Guardar Cambios' : 'Guardar Ficha'}
               </Button>
             )}
           </div>

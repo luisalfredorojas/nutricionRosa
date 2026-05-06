@@ -105,14 +105,31 @@ export async function PUT(
       .from('fichas_nutricionales')
       .update(payload)
       .eq('id', params.id)
-      .select('id')
+      .select('id, paciente_id')
       .single()
 
     if (error || !updated) {
       return NextResponse.json({ error: error?.message ?? 'Error actualizando ficha' }, { status: 500 })
     }
 
-    return NextResponse.json({ data: updated })
+    // Update patient fields if any personal data was sent
+    const pacientePayload: Record<string, unknown> = {}
+    if (data.nombre !== undefined) pacientePayload.nombre = data.nombre
+    if (data.fecha_nacimiento !== undefined) pacientePayload.fecha_nacimiento = data.fecha_nacimiento
+    if (data.sexo !== undefined) pacientePayload.sexo = data.sexo
+    if (data.correo !== undefined) pacientePayload.correo = data.correo
+    if (data.ciudad !== undefined) pacientePayload.ciudad = data.ciudad
+    if (data.tipo_paciente !== undefined) pacientePayload.tipo_paciente = data.tipo_paciente
+    if (data.empresa_id !== undefined) pacientePayload.empresa_id = data.empresa_id || null
+
+    if (Object.keys(pacientePayload).length > 0 && (updated as any).paciente_id) {
+      await supabase
+        .from('pacientes')
+        .update(pacientePayload)
+        .eq('id', (updated as any).paciente_id)
+    }
+
+    return NextResponse.json({ data: { id: updated.id } })
   } catch {
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }

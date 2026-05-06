@@ -11,7 +11,7 @@ import { TablaComparativa } from '@/components/ficha/TablaComparativa'
 import { ExportFichaPDF } from '@/components/ficha/ExportFichaPDF'
 import type { IndicadoresCalculados } from '@/types/ficha'
 import { formatDate, formatDecimal } from '@/lib/utils'
-import { ChevronLeft, Plus } from 'lucide-react'
+import { ChevronLeft, Pencil, Plus } from 'lucide-react'
 
 interface PageProps {
   params: { id: string }
@@ -122,6 +122,12 @@ export default async function FichaDetailPage({ params }: PageProps) {
             targetId={`tabla-comparativa-${(ficha as any).paciente_id}`}
             label="Descargar Tabla"
           />
+          <Link href={`/fichas/${params.id}/editar`}>
+            <Button size="sm" variant="outline" className="gap-1.5">
+              <Pencil className="h-4 w-4" />
+              Editar
+            </Button>
+          </Link>
           <Link href={`/fichas/${params.id}/seguimiento`}>
             <Button size="sm" className="gap-1.5">
               <Plus className="h-4 w-4" />

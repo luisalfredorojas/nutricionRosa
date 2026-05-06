@@ -16,9 +16,10 @@ interface Empresa {
 
 interface DatosPersonalesFormProps {
   form: UseFormReturn<FichaCompletaInput>
+  disabledTipo?: boolean
 }
 
-export function DatosPersonalesForm({ form }: DatosPersonalesFormProps) {
+export function DatosPersonalesForm({ form, disabledTipo }: DatosPersonalesFormProps) {
   const { register, formState: { errors }, watch, setValue } = form
   const [empresas, setEmpresas] = useState<Empresa[]>([])
 
@@ -39,27 +40,33 @@ export function DatosPersonalesForm({ form }: DatosPersonalesFormProps) {
         <div className="flex gap-2">
           <button
             type="button"
+            disabled={disabledTipo}
             onClick={() => {
-              setValue('tipo_paciente', 'privado', { shouldValidate: true })
-              setValue('empresa_id', '')
+              if (!disabledTipo) {
+                setValue('tipo_paciente', 'privado', { shouldValidate: true })
+                setValue('empresa_id', '')
+              }
             }}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
               tipoPaciente === 'privado'
                 ? 'bg-rosa-50 border-rosa-400 text-rosa-800'
                 : 'bg-white border-gray-200 text-gray-500 hover:border-rosa-200 hover:text-rosa-700'
-            }`}
+            } ${disabledTipo ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             <User className="h-4 w-4" />
             Privado
           </button>
           <button
             type="button"
-            onClick={() => setValue('tipo_paciente', 'empresa', { shouldValidate: true })}
+            disabled={disabledTipo}
+            onClick={() => {
+              if (!disabledTipo) setValue('tipo_paciente', 'empresa', { shouldValidate: true })
+            }}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
               tipoPaciente === 'empresa'
                 ? 'bg-rosa-50 border-rosa-400 text-rosa-800'
                 : 'bg-white border-gray-200 text-gray-500 hover:border-rosa-200 hover:text-rosa-700'
-            }`}
+            } ${disabledTipo ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             <Building2 className="h-4 w-4" />
             Empresa
