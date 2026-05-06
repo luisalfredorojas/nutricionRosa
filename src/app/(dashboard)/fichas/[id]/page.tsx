@@ -164,6 +164,15 @@ export default async function FichaDetailPage({ params }: PageProps) {
                 <Field label="Talla" value={ficha.talla_m ? `${ficha.talla_m} m` : null} />
                 <Field label="Cintura" value={ficha.circunferencia_cintura ? `${ficha.circunferencia_cintura} cm` : null} />
                 <Field label="Cadera" value={ficha.circunferencia_cadera ? `${ficha.circunferencia_cadera} cm` : null} />
+                {(fichaAny.circunferencia_brazo != null) && (
+                  <Field label="Brazo" value={`${fichaAny.circunferencia_brazo} cm`} />
+                )}
+                {paciente?.sexo === 'Femenino' && (
+                  <Field
+                    label="Última menstruación"
+                    value={fichaAny.fecha_ultima_menstruacion ? formatDate(fichaAny.fecha_ultima_menstruacion) : '—'}
+                  />
+                )}
               </div>
               {ficha.motivo_consulta && (
                 <div className="mt-4">
