@@ -7,10 +7,12 @@ import {
   User,
   Building2,
   Settings,
+  Users,
   X,
 } from 'lucide-react'
+import { useIsAdmin } from '@/context/user-context'
 
-const navItems = [
+const baseNavItems = [
   { href: '/inicio', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/privados', label: 'Privados', icon: User },
   { href: '/empresas', label: 'Empresas', icon: Building2 },
@@ -23,6 +25,11 @@ interface SidebarProps {
 
 export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname()
+  const isAdmin = useIsAdmin()
+
+  const navItems = isAdmin
+    ? [...baseNavItems, { href: '/usuarios', label: 'Usuarios', icon: Users }]
+    : baseNavItems
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-full shrink-0">

@@ -2,14 +2,26 @@
 
 import { LogOut, User, Menu } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useUserProfile } from '@/context/user-context'
 
 interface HeaderProps {
   onMenuClick?: () => void
 }
 
+const roleBadge: Record<string, { label: string; className: string }> = {
+  admin: {
+    label: 'Admin',
+    className: 'bg-rosa-100 text-rosa-700 border border-rosa-200',
+  },
+  asistente: {
+    label: 'Asistente',
+    className: 'bg-gray-100 text-gray-600 border border-gray-200',
+  },
+}
+
 export function Header({ onMenuClick }: HeaderProps) {
-  const router = useRouter()
+  const profile = useUserProfile()
+  const badge = profile ? (roleBadge[profile.role] ?? roleBadge.asistente) : null
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -29,11 +41,20 @@ export function Header({ onMenuClick }: HeaderProps) {
       <div className="hidden lg:block" />
 
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 text-rosa-600">
-          <div className="w-7 h-7 rounded-full bg-rosa-100 flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-rosa-100 flex items-center justify-center shrink-0">
             <User className="h-3.5 w-3.5 text-rosa-600" />
           </div>
-          <span className="text-sm font-medium hidden sm:block">Nutricionista</span>
+          <div className="hidden sm:flex flex-col items-start leading-tight">
+            <span className="text-sm font-medium text-rosa-800 max-w-[180px] truncate">
+              {profile?.email ?? 'Usuario'}
+            </span>
+            {badge && (
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badge.className}`}>
+                {badge.label}
+              </span>
+            )}
+          </div>
         </div>
         <button
           onClick={handleLogout}

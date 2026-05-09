@@ -1,9 +1,17 @@
 import { DashboardShell } from '@/components/layout/DashboardShell'
+import { getUserProfile } from '@/lib/supabase/get-user-profile'
+import { UserProvider } from '@/context/user-context'
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return <DashboardShell>{children}</DashboardShell>
+  const profile = await getUserProfile()
+
+  return (
+    <UserProvider profile={profile}>
+      <DashboardShell>{children}</DashboardShell>
+    </UserProvider>
+  )
 }
