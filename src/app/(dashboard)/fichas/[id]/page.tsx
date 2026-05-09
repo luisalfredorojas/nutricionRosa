@@ -12,6 +12,7 @@ import { ExportFichaPDF } from '@/components/ficha/ExportFichaPDF'
 import type { IndicadoresCalculados } from '@/types/ficha'
 import { formatDate, formatDecimal } from '@/lib/utils'
 import { ChevronLeft, Pencil, Plus } from 'lucide-react'
+import { DeleteFichaButton } from '@/components/ficha/DeleteFichaButton'
 
 interface PageProps {
   params: { id: string }
@@ -121,6 +122,12 @@ export default async function FichaDetailPage({ params }: PageProps) {
             pacienteNombre={paciente?.nombre}
             targetId={`tabla-comparativa-${(ficha as any).paciente_id}`}
             label="Descargar Tabla"
+          />
+          <DeleteFichaButton
+            fichaId={params.id}
+            pacienteNombre={paciente?.nombre}
+            redirectTo={backHref}
+            variant="full"
           />
           <Link href={`/fichas/${params.id}/editar`}>
             <Button size="sm" variant="outline" className="gap-1.5">

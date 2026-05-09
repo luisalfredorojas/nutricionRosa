@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatDate, formatDecimal } from '@/lib/utils'
 import { Plus, Search, FileText } from 'lucide-react'
+import { DeleteFichaButton } from '@/components/ficha/DeleteFichaButton'
 
 interface FichaItem {
   id: string
@@ -143,9 +144,16 @@ export function FichasListClient({
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link href={`/fichas/${ficha.id}`}>
-                        <Button variant="ghost" size="sm" className="text-xs">Ver →</Button>
-                      </Link>
+                      <div className="flex items-center justify-end gap-1">
+                        <DeleteFichaButton
+                          fichaId={ficha.id}
+                          pacienteNombre={ficha.nombre}
+                          variant="icon"
+                        />
+                        <Link href={`/fichas/${ficha.id}`}>
+                          <Button variant="ghost" size="sm" className="text-xs">Ver →</Button>
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
