@@ -62,7 +62,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         paciente_id: pacienteId,
         ficha_padre_id: params.id,
         tipo: 'seguimiento',
-        fecha_consulta: data.fecha_consulta ?? new Date().toISOString().split('T')[0],
+        fecha_consulta: data.fecha_consulta ?? (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })(),
         motivo_consulta: data.motivo_consulta ?? null,
         diagnostico_clinico: data.diagnostico_clinico ?? null,
         peso_kg: data.peso_kg ?? null,
