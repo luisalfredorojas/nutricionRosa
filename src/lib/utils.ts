@@ -6,11 +6,14 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDate(date: string | Date): string {
-  const d = typeof date === 'string' ? new Date(date) : date
-  return d.toLocaleDateString('es-CL', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+  if (typeof date === 'string') {
+    const [y, m, d] = date.split('-').map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString('es-CL', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+    })
+  }
+  return date.toLocaleDateString('es-CL', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
   })
 }
 
