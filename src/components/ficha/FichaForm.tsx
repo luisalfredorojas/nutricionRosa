@@ -274,6 +274,15 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
             </div>
           )}
 
+          {/* Indicador de borrador guardado */}
+          {draftSaved && !isEditMode && (
+            <div className="flex justify-end mb-2">
+              <span className="flex items-center gap-1 text-xs text-gray-400">
+                <Check className="h-3 w-3" /> Borrador guardado
+              </span>
+            </div>
+          )}
+
           {/* Tab navigation */}
           <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-6 overflow-x-auto">
             {TABS.map((tab) => (
@@ -306,7 +315,7 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
           </Card>
 
           {/* Tab navigation buttons */}
-          <div className="flex justify-between items-center mt-4">
+          <div className="flex justify-between mt-4">
             <Button
               type="button"
               variant="outline"
@@ -329,20 +338,13 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
                 Siguiente →
               </Button>
             ) : (
-              <div className="flex items-center gap-3">
-                {draftSaved && !isEditMode && (
-                  <span className="flex items-center gap-1 text-xs text-gray-400">
-                    <Check className="h-3 w-3" /> Borrador guardado
-                  </span>
-                )}
-                <Button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => form.handleSubmit(onSubmit, onInvalid)()}
-                >
-                  {saving ? 'Guardando...' : isEditMode ? 'Guardar Cambios' : 'Guardar Ficha'}
-                </Button>
-              </div>
+              <Button
+                type="button"
+                disabled={saving}
+                onClick={() => form.handleSubmit(onSubmit, onInvalid)()}
+              >
+                {saving ? 'Guardando...' : isEditMode ? 'Guardar Cambios' : 'Guardar Ficha'}
+              </Button>
             )}
           </div>
 
