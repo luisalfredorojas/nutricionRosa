@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useForm, FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
@@ -14,7 +14,9 @@ import { HabitosForm } from './HabitosForm'
 import { IndicadoresCalculadosDisplay } from './IndicadoresCalculados'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Check, RotateCcw } from 'lucide-react'
+
+const DRAFT_KEY = 'ficha_draft_nueva'
 
 const TABS = [
   { id: 'personales', label: 'Datos Personales' },
@@ -93,6 +95,10 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
   const [activeTab, setActiveTab] = useState<TabId>('personales')
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<FormError | null>(null)
+  const [hasDraft, setHasDraft] = useState(false)
+  const [draftSaved, setDraftSaved] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const firstRenderRef = useRef(true)
 
   const isEditMode = Boolean(fichaId)
 
@@ -116,6 +122,58 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
   })
 
   const watchedValues = form.watch()
+
+  // Detectar borrador al montar (solo en modo nueva ficha)
+  useEffect(() => {
+    if (isEditMode) return
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (parsed.nombre) setHasDraft(true)
+      }
+    } catch {
+      localStorage.removeItem(DRAFT_KEY)
+    }
+  }, [isEditMode])
+
+  // Auto-guardado con debounce de 2 segundos
+  useEffect(() => {
+    if (isEditMode) return
+    if (firstRenderRef.current) {
+      firstRenderRef.current = false
+      return
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(watchedValues))
+        setDraftSaved(true)
+      } catch {
+        // localStorage no disponible
+      }
+    }, 2000)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [watchedValues, isEditMode])
+
+  function restoreDraft() {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY)
+      if (!saved) return
+      form.reset(JSON.parse(saved))
+    } catch {
+      localStorage.removeItem(DRAFT_KEY)
+    }
+    setHasDraft(false)
+  }
+
+  function discardDraft() {
+    localStorage.removeItem(DRAFT_KEY)
+    setHasDraft(false)
+    setDraftSaved(false)
+  }
 
   const indicadores = calcularTodosLosIndicadores({
     pesoKg: watchedValues.peso_kg ?? null,
@@ -177,6 +235,7 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
         return
       }
 
+      if (!isEditMode) localStorage.removeItem(DRAFT_KEY)
       const destination = redirectTo
         ?? (isEditMode ? `/fichas/${fichaId}` : (form.getValues('tipo_paciente') === 'privado' ? '/privados' : '/empresas'))
       router.push(destination)
@@ -197,6 +256,24 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
     <form onSubmit={(e) => e.preventDefault()}>
       <div className="flex flex-col xl:flex-row gap-6">
         <div className="flex-1 min-w-0">
+          {/* Banner de borrador detectado */}
+          {hasDraft && !isEditMode && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+              <div className="flex items-center gap-2 text-sm text-amber-800">
+                <RotateCcw className="h-4 w-4 shrink-0" />
+                <span>Hay un borrador guardado de una ficha anterior. ¿Deseas restaurarlo?</span>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Button type="button" size="sm" variant="outline" onClick={discardDraft}>
+                  Descartar
+                </Button>
+                <Button type="button" size="sm" onClick={restoreDraft}>
+                  Restaurar borrador
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Tab navigation */}
           <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-6 overflow-x-auto">
             {TABS.map((tab) => (
@@ -229,7 +306,7 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
           </Card>
 
           {/* Tab navigation buttons */}
-          <div className="flex justify-between mt-4">
+          <div className="flex justify-between items-center mt-4">
             <Button
               type="button"
               variant="outline"
@@ -252,13 +329,20 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
                 Siguiente →
               </Button>
             ) : (
-              <Button
-                type="button"
-                disabled={saving}
-                onClick={() => form.handleSubmit(onSubmit, onInvalid)()}
-              >
-                {saving ? 'Guardando...' : isEditMode ? 'Guardar Cambios' : 'Guardar Ficha'}
-              </Button>
+              <div className="flex items-center gap-3">
+                {draftSaved && !isEditMode && (
+                  <span className="flex items-center gap-1 text-xs text-gray-400">
+                    <Check className="h-3 w-3" /> Borrador guardado
+                  </span>
+                )}
+                <Button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => form.handleSubmit(onSubmit, onInvalid)()}
+                >
+                  {saving ? 'Guardando...' : isEditMode ? 'Guardar Cambios' : 'Guardar Ficha'}
+                </Button>
+              </div>
             )}
           </div>
 
