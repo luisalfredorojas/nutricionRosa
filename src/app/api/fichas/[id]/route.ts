@@ -152,16 +152,37 @@ export async function DELETE(
   try {
     const supabase = await createClient()
 
-    const { error } = await supabase
+    // Requiere sesión activa: si no hay usuario, RLS oculta la fila y el delete
+    // afecta 0 filas sin error, dando la sensación de que "no elimina".
+    const { data: userData } = await supabase.auth.getUser()
+    if (!userData?.user) {
+      return NextResponse.json({ error: 'No autenticado. Vuelve a iniciar sesión.' }, { status: 401 })
+    }
+
+    // Desvincula seguimientos hijos antes de borrar la ficha padre.
+    await supabase
+      .from('fichas_nutricionales')
+      .update({ ficha_padre_id: null })
+      .eq('ficha_padre_id', params.id)
+
+    const { data: deleted, error } = await supabase
       .from('fichas_nutricionales')
       .delete()
       .eq('id', params.id)
+      .select('id')
 
     if (error) {
       return NextResponse.json({ error: traducirErrorDB(error.message) }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true })
+    if (!deleted || deleted.length === 0) {
+      return NextResponse.json(
+        { error: 'No se encontró la ficha o no tienes permisos para eliminarla.' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({ success: true, deleted: deleted.length })
   } catch {
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
