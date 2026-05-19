@@ -21,7 +21,18 @@ export default async function SeguimientoPage({ params }: PageProps) {
     .select(`
       id,
       paciente_id,
+      fecha_consulta,
+      peso_kg,
       talla_m,
+      imc,
+      circunferencia_cintura,
+      circunferencia_cadera,
+      circunferencia_brazo,
+      indice_cc,
+      porcentaje_masa_grasa,
+      porcentaje_masa_muscular,
+      edad_metabolica,
+      grasa_visceral,
       pacientes (
         nombre,
         sexo,
@@ -99,6 +110,20 @@ export default async function SeguimientoPage({ params }: PageProps) {
         fichaId={params.id}
         sexo={paciente?.sexo ?? 'Femenino'}
         defaultTalla={(ficha as any).talla_m ?? null}
+        fichaAnterior={{
+          fecha_consulta: fichaAny.fecha_consulta ?? null,
+          peso_kg: fichaAny.peso_kg ?? null,
+          talla_m: fichaAny.talla_m ?? null,
+          imc: fichaAny.imc ?? null,
+          circunferencia_cintura: fichaAny.circunferencia_cintura ?? null,
+          circunferencia_cadera: fichaAny.circunferencia_cadera ?? null,
+          circunferencia_brazo: fichaAny.circunferencia_brazo ?? null,
+          indice_cc: fichaAny.indice_cc ?? null,
+          porcentaje_masa_grasa: fichaAny.porcentaje_masa_grasa ?? null,
+          porcentaje_masa_muscular: fichaAny.porcentaje_masa_muscular ?? null,
+          edad_metabolica: fichaAny.edad_metabolica ?? null,
+          grasa_visceral: fichaAny.grasa_visceral ?? null,
+        }}
       />
     </div>
   )

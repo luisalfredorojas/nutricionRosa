@@ -6,12 +6,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { fichaNutricionalSchema, datosBalanzaSchema, habitosSchema } from '@/lib/validators/ficha'
-import { calcularTodosLosIndicadores } from '@/lib/formulas/indicadores'
+import { calcularTodosLosIndicadores, calcularIMC, calcularICC } from '@/lib/formulas/indicadores'
 import type { SexoType } from '@/types/ficha'
 import { FichaNutricionalForm } from './FichaNutricionalForm'
 import { DatosBalanzaForm } from './DatosBalanzaForm'
 import { HabitosForm } from './HabitosForm'
 import { IndicadoresCalculadosDisplay } from './IndicadoresCalculados'
+import { FichaAnteriorCard, type FichaAnteriorData } from './FichaAnteriorCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -38,9 +39,10 @@ interface SeguimientoFormProps {
   fichaId: string
   sexo: string
   defaultTalla?: number | null
+  fichaAnterior?: FichaAnteriorData
 }
 
-export function SeguimientoForm({ fichaId, sexo, defaultTalla }: SeguimientoFormProps) {
+export function SeguimientoForm({ fichaId, sexo, defaultTalla, fichaAnterior }: SeguimientoFormProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabId>('nutricional')
   const [saving, setSaving] = useState(false)
@@ -177,8 +179,8 @@ export function SeguimientoForm({ fichaId, sexo, defaultTalla }: SeguimientoForm
         </div>
 
         {/* Indicators sidebar */}
-        <div className="xl:w-72 shrink-0">
-          <Card className="sticky top-6">
+        <div className="xl:w-72 shrink-0 space-y-4 xl:sticky xl:top-6 self-start">
+          <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Indicadores Calculados</CardTitle>
             </CardHeader>
@@ -186,6 +188,29 @@ export function SeguimientoForm({ fichaId, sexo, defaultTalla }: SeguimientoForm
               <IndicadoresCalculadosDisplay indicadores={indicadores} />
             </CardContent>
           </Card>
+
+          {fichaAnterior && (activeTab === 'nutricional' || activeTab === 'balanza') && (
+            <FichaAnteriorCard
+              tab={activeTab}
+              anterior={fichaAnterior}
+              current={{
+                peso_kg: watchedValues.peso_kg ?? null,
+                talla_m: watchedValues.talla_m ?? null,
+                imc: calcularIMC(watchedValues.peso_kg ?? null, watchedValues.talla_m ?? null),
+                circunferencia_cintura: watchedValues.circunferencia_cintura ?? null,
+                circunferencia_cadera: watchedValues.circunferencia_cadera ?? null,
+                circunferencia_brazo: watchedValues.circunferencia_brazo ?? null,
+                indice_cc: calcularICC(
+                  watchedValues.circunferencia_cintura ?? null,
+                  watchedValues.circunferencia_cadera ?? null,
+                ),
+                porcentaje_masa_grasa: watchedValues.porcentaje_masa_grasa ?? null,
+                porcentaje_masa_muscular: watchedValues.porcentaje_masa_muscular ?? null,
+                edad_metabolica: watchedValues.edad_metabolica ?? null,
+                grasa_visceral: watchedValues.grasa_visceral ?? null,
+              }}
+            />
+          )}
         </div>
       </div>
     </form>
