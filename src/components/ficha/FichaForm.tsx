@@ -58,6 +58,16 @@ const FIELD_LABELS: Record<string, string> = {
   consumo_tabaco: 'Consumo de tabaco',
 }
 
+const TAB_FIELDS: Record<TabId, (keyof FichaCompletaInput)[]> = {
+  personales: ['nombre', 'fecha_nacimiento', 'sexo', 'correo', 'ciudad', 'empresa_id', 'tipo_paciente'],
+  nutricional: ['fecha_consulta', 'motivo_consulta', 'diagnostico_clinico', 'peso_kg', 'talla_m',
+    'circunferencia_cintura', 'circunferencia_cadera', 'circunferencia_brazo',
+    'fecha_ultima_menstruacion', 'recordatorio_24h', 'comentarios'],
+  balanza: ['balanza_id', 'porcentaje_masa_grasa', 'porcentaje_masa_muscular', 'edad_metabolica', 'grasa_visceral'],
+  habitos: ['digestion', 'descanso', 'nivel_estres', 'consumo_agua', 'consumo_frutas', 'consumo_vegetales',
+    'actividad_fisica', 'consumo_cafe', 'consumo_alcohol', 'consumo_tabaco', 'no_le_gusta_comer', 'le_gusta_comer'],
+}
+
 const FIELD_TAB: Record<string, TabId> = {
   nombre: 'personales', fecha_nacimiento: 'personales', sexo: 'personales',
   correo: 'personales', ciudad: 'personales', empresa_id: 'personales', tipo_paciente: 'personales',
@@ -100,7 +110,9 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const firstRenderRef = useRef(true)
 
+  const [createdFichaId, setCreatedFichaId] = useState<string | null>(fichaId ?? null)
   const isEditMode = Boolean(fichaId)
+  const hasPersistedFicha = Boolean(createdFichaId)
 
   const form = useForm<FichaCompletaInput>({
     resolver: zodResolver(fichaCompletaSchema),
@@ -205,14 +217,14 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
     })
   }
 
-  const onSubmit = async (data: FichaCompletaInput) => {
-    setSaving(true)
+  // Guarda la ficha (POST si no existe aún, PUT si ya fue creada). Retorna true si OK.
+  const persistFicha = async (data: FichaCompletaInput): Promise<boolean> => {
     setFormError(null)
+    const targetId = createdFichaId
+    const url = targetId ? `/api/fichas/${targetId}` : '/api/fichas'
+    const method = targetId ? 'PUT' : 'POST'
 
     try {
-      const url = isEditMode ? `/api/fichas/${fichaId}` : '/api/fichas'
-      const method = isEditMode ? 'PUT' : 'POST'
-
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -221,7 +233,6 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
 
       if (!res.ok) {
         const body = await res.json()
-
         if (body.details?.fieldErrors) {
           const fields = Object.entries(body.details.fieldErrors as Record<string, string[]>)
             .map(([field, msgs]) => `${FIELD_LABELS[field] ?? field}: ${msgs[0]}`)
@@ -232,16 +243,64 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
         } else {
           setFormError({ message: body.error ?? 'Error al guardar la ficha' })
         }
+        return false
+      }
+
+      if (!targetId) {
+        const json = await res.json()
+        const newId = json?.data?.id as string | undefined
+        if (newId) setCreatedFichaId(newId)
+        localStorage.removeItem(DRAFT_KEY)
+        setHasDraft(false)
+        setDraftSaved(false)
+      }
+      return true
+    } catch {
+      setFormError({ message: 'No se pudo conectar con el servidor. Intenta nuevamente.' })
+      return false
+    }
+  }
+
+  const onSubmit = async (data: FichaCompletaInput) => {
+    setSaving(true)
+    try {
+      const ok = await persistFicha(data)
+      if (!ok) return
+      const finalId = createdFichaId ?? fichaId
+      const destination = redirectTo
+        ?? (isEditMode || finalId
+          ? `/fichas/${finalId}`
+          : (form.getValues('tipo_paciente') === 'privado' ? '/privados' : '/empresas'))
+      router.push(destination)
+      router.refresh()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleNext = async () => {
+    setSaving(true)
+    setFormError(null)
+    try {
+      // Valida solo los campos del tab actual: bloquea avance si faltan obligatorios.
+      const currentFields = TAB_FIELDS[activeTab]
+      const isCurrentValid = await form.trigger(currentFields)
+      if (!isCurrentValid) {
+        const fields = currentFields
+          .filter((f) => form.formState.errors[f])
+          .map((f) => FIELD_LABELS[f as string] ?? (f as string))
+        setFormError({
+          message: 'Completa los campos obligatorios antes de continuar:',
+          fields,
+        })
         return
       }
 
-      if (!isEditMode) localStorage.removeItem(DRAFT_KEY)
-      const destination = redirectTo
-        ?? (isEditMode ? `/fichas/${fichaId}` : (form.getValues('tipo_paciente') === 'privado' ? '/privados' : '/empresas'))
-      router.push(destination)
-      router.refresh()
-    } catch {
-      setFormError({ message: 'No se pudo conectar con el servidor. Intenta nuevamente.' })
+      const data = form.getValues()
+      const ok = await persistFicha(data)
+      if (!ok) return
+      const idx = TABS.findIndex((t) => t.id === activeTab)
+      if (idx < TABS.length - 1) setActiveTab(TABS[idx + 1].id)
     } finally {
       setSaving(false)
     }
@@ -330,12 +389,10 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
             {activeTab !== 'habitos' ? (
               <Button
                 type="button"
-                onClick={() => {
-                  const idx = TABS.findIndex((t) => t.id === activeTab)
-                  setActiveTab(TABS[idx + 1].id)
-                }}
+                disabled={saving}
+                onClick={handleNext}
               >
-                Siguiente →
+                {saving ? 'Guardando...' : 'Guardar y siguiente →'}
               </Button>
             ) : (
               <Button
@@ -343,7 +400,7 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
                 disabled={saving}
                 onClick={() => form.handleSubmit(onSubmit, onInvalid)()}
               >
-                {saving ? 'Guardando...' : isEditMode ? 'Guardar Cambios' : 'Guardar Ficha'}
+                {saving ? 'Guardando...' : isEditMode || hasPersistedFicha ? 'Guardar Cambios' : 'Guardar Ficha'}
               </Button>
             )}
           </div>
