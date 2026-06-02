@@ -187,10 +187,16 @@ export default async function FichaDetailPage({ params }: PageProps) {
                   <p className="text-sm text-rosa-800">{ficha.motivo_consulta}</p>
                 </div>
               )}
+              {ficha.recordatorio_24h && (
+                <div className="mt-4">
+                  <p className="text-xs text-rosa-500 font-medium uppercase tracking-wide mb-1">Recordatorio 24h</p>
+                  <p className="text-sm text-rosa-800 whitespace-pre-wrap">{ficha.recordatorio_24h}</p>
+                </div>
+              )}
               {ficha.comentarios && (
                 <div className="mt-4">
                   <p className="text-xs text-rosa-500 font-medium uppercase tracking-wide mb-1">Comentarios</p>
-                  <p className="text-sm text-rosa-800">{ficha.comentarios}</p>
+                  <p className="text-sm text-rosa-800 whitespace-pre-wrap">{ficha.comentarios}</p>
                 </div>
               )}
             </CardContent>

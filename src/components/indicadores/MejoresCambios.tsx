@@ -25,32 +25,36 @@ export function MejoresCambios({ data }: MejoresCambiosProps) {
           </div>
         ) : (
           <ol className="space-y-3">
-            {data.map((item, i) => (
-              <li
-                key={`${item.paciente_nombre}-${i}`}
-                className="flex items-center justify-between p-3 rounded-lg bg-rosa-50 border border-rosa-100"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center w-7 h-7 rounded-full bg-rosa-200 text-rosa-800 font-bold text-sm">
-                    {i + 1}
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-rosa-800">
-                      {item.paciente_nombre}
-                    </p>
-                    <p className="text-xs text-rosa-500">{item.metric}</p>
-                  </div>
-                </div>
-                <span
-                  className={`text-sm font-bold ${
-                    item.delta < 0 ? 'text-green-600' : 'text-rosa-700'
-                  }`}
+            {data.map((item, i) => {
+              const isMusculo = item.metric.toLowerCase().includes('músculo') || item.metric.toLowerCase().includes('musculo')
+              const isPositiveChange = isMusculo ? item.delta > 0 : item.delta < 0
+              return (
+                <li
+                  key={`${item.paciente_nombre}-${i}`}
+                  className="flex items-center justify-between p-3 rounded-lg bg-rosa-50 border border-rosa-100"
                 >
-                  {item.delta > 0 ? '+' : ''}
-                  {formatDecimal(item.delta, 1)}%
-                </span>
-              </li>
-            ))}
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-rosa-200 text-rosa-800 font-bold text-sm">
+                      {i + 1}
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-rosa-800">
+                        {item.paciente_nombre}
+                      </p>
+                      <p className="text-xs text-rosa-500">{item.metric}</p>
+                    </div>
+                  </div>
+                  <span
+                    className={`text-sm font-bold ${
+                      isPositiveChange ? 'text-green-600' : 'text-red-600'
+                    }`}
+                  >
+                    {item.delta > 0 ? '+' : ''}
+                    {formatDecimal(item.delta, 1)}%
+                  </span>
+                </li>
+              )
+            })}
           </ol>
         )}
       </CardContent>
