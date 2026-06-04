@@ -50,9 +50,10 @@ interface StatCardProps {
   value: string
   subtitle?: string
   icon: React.ComponentType<{ className?: string }>
+  valueClassName?: string
 }
 
-function StatCard({ title, value, subtitle, icon: Icon }: StatCardProps) {
+function StatCard({ title, value, subtitle, icon: Icon, valueClassName }: StatCardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
       <div className="flex items-start justify-between">
@@ -60,7 +61,7 @@ function StatCard({ title, value, subtitle, icon: Icon }: StatCardProps) {
           <p className="text-xs font-semibold text-rosa-500 uppercase tracking-wide mb-1">
             {title}
           </p>
-          <p className="text-2xl font-bold text-rosa-800 mt-1">{value}</p>
+          <p className={`text-2xl font-bold mt-1 ${valueClassName ?? 'text-rosa-800'}`}>{value}</p>
           {subtitle && <p className="text-xs text-rosa-400 mt-1">{subtitle}</p>}
         </div>
         <div className="p-2.5 rounded-xl bg-rosa-100">
@@ -69,6 +70,17 @@ function StatCard({ title, value, subtitle, icon: Icon }: StatCardProps) {
       </div>
     </div>
   )
+}
+
+/**
+ * Color rule for body composition deltas:
+ * - Grasa: lower is better → negative = green, positive = red
+ * - Músculo: higher is better → positive = green, negative = red
+ */
+function deltaColorClass(delta: number | null | undefined, metric: 'grasa' | 'musculo'): string {
+  if (delta == null || delta === 0) return 'text-rosa-800'
+  const isImprovement = metric === 'musculo' ? delta > 0 : delta < 0
+  return isImprovement ? 'text-green-600' : 'text-red-600'
 }
 
 export function IndicadoresDashboard({
@@ -129,25 +141,23 @@ export function IndicadoresDashboard({
     return undefined
   }, [data, scope])
 
-  const grasaDisplay = useMemo(() => {
-    if (!data) return '—'
-    if (scope === 'privado') {
-      const v = data.grasa.delta
-      return v != null ? `${v > 0 ? '+' : ''}${formatDecimal(v, 1)}%` : '—'
-    }
-    const v = data.grasa.deltaPromedio
-    return v != null ? `${v > 0 ? '+' : ''}${formatDecimal(v, 1)}%` : '—'
+  const grasaDelta = useMemo<number | null>(() => {
+    if (!data) return null
+    return scope === 'privado' ? data.grasa.delta ?? null : data.grasa.deltaPromedio ?? null
   }, [data, scope])
 
-  const musculoDisplay = useMemo(() => {
-    if (!data) return '—'
-    if (scope === 'privado') {
-      const v = data.musculo.delta
-      return v != null ? `${v > 0 ? '+' : ''}${formatDecimal(v, 1)}%` : '—'
-    }
-    const v = data.musculo.deltaPromedio
-    return v != null ? `${v > 0 ? '+' : ''}${formatDecimal(v, 1)}%` : '—'
+  const musculoDelta = useMemo<number | null>(() => {
+    if (!data) return null
+    return scope === 'privado' ? data.musculo.delta ?? null : data.musculo.deltaPromedio ?? null
   }, [data, scope])
+
+  const grasaDisplay = useMemo(() => {
+    return grasaDelta != null ? `${grasaDelta > 0 ? '+' : ''}${formatDecimal(grasaDelta, 1)}%` : '—'
+  }, [grasaDelta])
+
+  const musculoDisplay = useMemo(() => {
+    return musculoDelta != null ? `${musculoDelta > 0 ? '+' : ''}${formatDecimal(musculoDelta, 1)}%` : '—'
+  }, [musculoDelta])
 
   return (
     <div>
@@ -192,12 +202,14 @@ export function IndicadoresDashboard({
             value={loading ? '...' : grasaDisplay}
             subtitle={scope === 'empresa' ? 'Promedio primera vs última' : 'Primera vs última'}
             icon={TrendingDown}
+            valueClassName={loading ? undefined : deltaColorClass(grasaDelta, 'grasa')}
           />
           <StatCard
             title="Cambio % Músculo"
             value={loading ? '...' : musculoDisplay}
             subtitle={scope === 'empresa' ? 'Promedio primera vs última' : 'Primera vs última'}
             icon={Dumbbell}
+            valueClassName={loading ? undefined : deltaColorClass(musculoDelta, 'musculo')}
           />
           <StatCard
             title="Citas Control"
