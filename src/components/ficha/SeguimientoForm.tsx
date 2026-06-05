@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
@@ -47,6 +47,7 @@ export function SeguimientoForm({ fichaId, sexo, defaultTalla, fichaAnterior }: 
   const [activeTab, setActiveTab] = useState<TabId>('nutricional')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const savingRef = useRef(false) // candado síncrono contra doble envío (doble clic)
 
   const form = useForm<SeguimientoInput>({
     resolver: zodResolver(seguimientoSchema),
@@ -75,6 +76,8 @@ export function SeguimientoForm({ fichaId, sexo, defaultTalla, fichaAnterior }: 
   })
 
   const onSubmit = async (data: SeguimientoInput) => {
+    if (savingRef.current) return  // candado: ignora doble clic / reenvíos en vuelo
+    savingRef.current = true
     setSaving(true)
     setError(null)
 
@@ -97,6 +100,7 @@ export function SeguimientoForm({ fichaId, sexo, defaultTalla, fichaAnterior }: 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
   }

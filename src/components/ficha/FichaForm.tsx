@@ -111,6 +111,10 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
   const firstRenderRef = useRef(true)
 
   const [createdFichaId, setCreatedFichaId] = useState<string | null>(fichaId ?? null)
+  // Refs síncronos: el estado de React es asíncrono y deja una ventana en la que
+  // dos guardados seguidos leen el valor viejo. Estos refs cierran esa ventana.
+  const savingRef = useRef(false)              // candado contra doble envío (doble clic)
+  const createdFichaIdRef = useRef<string | null>(fichaId ?? null) // fuente de verdad POST vs PUT
   const isEditMode = Boolean(fichaId)
   const hasPersistedFicha = Boolean(createdFichaId)
 
@@ -149,9 +153,12 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
     }
   }, [isEditMode])
 
-  // Auto-guardado con debounce de 2 segundos
+  // Auto-guardado con debounce de 2 segundos.
+  // Se detiene una vez creada la ficha (createdFichaId): a partir de ahí cada
+  // "siguiente" ya persiste en el servidor, así que reescribir el borrador solo
+  // dejaría basura en localStorage que reaparecería en la próxima ficha nueva.
   useEffect(() => {
-    if (isEditMode) return
+    if (isEditMode || createdFichaId) return
     if (firstRenderRef.current) {
       firstRenderRef.current = false
       return
@@ -168,7 +175,7 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [watchedValues, isEditMode])
+  }, [watchedValues, isEditMode, createdFichaId])
 
   function restoreDraft() {
     try {
@@ -220,7 +227,9 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
   // Guarda la ficha (POST si no existe aún, PUT si ya fue creada). Retorna true si OK.
   const persistFicha = async (data: FichaCompletaInput): Promise<boolean> => {
     setFormError(null)
-    const targetId = createdFichaId
+    // Lee del ref (síncrono), no del estado: evita que un guardado disparado antes
+    // de que React aplique setCreatedFichaId vuelva a hacer POST y duplique la ficha.
+    const targetId = createdFichaIdRef.current
     const url = targetId ? `/api/fichas/${targetId}` : '/api/fichas'
     const method = targetId ? 'PUT' : 'POST'
 
@@ -249,7 +258,10 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
       if (!targetId) {
         const json = await res.json()
         const newId = json?.data?.id as string | undefined
-        if (newId) setCreatedFichaId(newId)
+        if (newId) {
+          createdFichaIdRef.current = newId  // síncrono: el próximo guardado ya hará PUT
+          setCreatedFichaId(newId)
+        }
         localStorage.removeItem(DRAFT_KEY)
         setHasDraft(false)
         setDraftSaved(false)
@@ -262,11 +274,13 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
   }
 
   const onSubmit = async (data: FichaCompletaInput) => {
+    if (savingRef.current) return  // candado: ignora doble clic / reenvíos en vuelo
+    savingRef.current = true
     setSaving(true)
     try {
       const ok = await persistFicha(data)
       if (!ok) return
-      const finalId = createdFichaId ?? fichaId
+      const finalId = createdFichaIdRef.current ?? fichaId
       const destination = redirectTo
         ?? (isEditMode || finalId
           ? `/fichas/${finalId}`
@@ -274,11 +288,14 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
       router.push(destination)
       router.refresh()
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
   }
 
   const handleNext = async () => {
+    if (savingRef.current) return  // candado: ignora doble clic / reenvíos en vuelo
+    savingRef.current = true
     setSaving(true)
     setFormError(null)
     try {
@@ -302,6 +319,7 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
       const idx = TABS.findIndex((t) => t.id === activeTab)
       if (idx < TABS.length - 1) setActiveTab(TABS[idx + 1].id)
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
   }
