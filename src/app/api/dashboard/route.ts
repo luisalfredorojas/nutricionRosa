@@ -30,6 +30,8 @@ export interface DashboardData {
 
   // Quick stats
   totalFichas: number
+  fichasIniciales: number
+  fichasSeguimiento: number
   totalEmpresas: number
 
   // Recent fichas
@@ -95,10 +97,16 @@ export async function GET(request: NextRequest) {
     const { data: fichasRaw } = await fichasQuery
 
     // ── 3. Quick stats ───────────────────────────────────────────────────────
-    const [fichasCountRes, empresasCountRes] = await Promise.all([
+    const [fichasCountRes, seguimientoCountRes, empresasCountRes] = await Promise.all([
       supabase.from('fichas_nutricionales').select('id', { count: 'exact', head: true }),
+      supabase.from('fichas_nutricionales').select('id', { count: 'exact', head: true }).eq('tipo', 'seguimiento'),
       supabase.from('empresas').select('id', { count: 'exact', head: true }),
     ])
+
+    // Iniciales = total − seguimientos (robusto ante fichas con tipo nulo: cuentan como iniciales)
+    const totalFichas = fichasCountRes.count ?? 0
+    const fichasSeguimiento = seguimientoCountRes.count ?? 0
+    const fichasIniciales = totalFichas - fichasSeguimiento
 
     // ── 4. Recent fichas (not date-filtered) ─────────────────────────────────
     const { data: recentFichas } = await supabase
@@ -234,7 +242,9 @@ export async function GET(request: NextRequest) {
       distribucionIMC,
       menorIMC,
       mayorIMC,
-      totalFichas: fichasCountRes.count ?? 0,
+      totalFichas,
+      fichasIniciales,
+      fichasSeguimiento,
       totalEmpresas: empresasCountRes.count ?? 0,
       ultimasFichas,
     }

@@ -245,10 +245,11 @@ export function DashboardClient() {
       {/* ── Quick stats ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
         {[
-          { label: 'Fichas Médicas', value: data?.totalFichas ?? 0, icon: FileText, href: '/fichas', color: 'bg-rosa-100 text-rosa-600' },
-          { label: 'Pacientes',      value: data?.totalPacientes ?? 0, icon: Users, href: '/privados', color: 'bg-purple-100 text-purple-600' },
-          { label: 'Empresas',       value: data?.totalEmpresas ?? 0, icon: Building2, href: '/empresas', color: 'bg-blue-100 text-blue-600' },
-        ].map(({ label, value, icon: Icon, href, color }) => (
+          { label: 'Fichas Médicas', value: data?.totalFichas ?? 0, icon: FileText, href: '/fichas', color: 'bg-rosa-100 text-rosa-600',
+            subtitle: data ? `${data.fichasIniciales} iniciales · ${data.fichasSeguimiento} seguimientos` : null },
+          { label: 'Pacientes',      value: data?.totalPacientes ?? 0, icon: Users, href: '/privados', color: 'bg-purple-100 text-purple-600', subtitle: null },
+          { label: 'Empresas',       value: data?.totalEmpresas ?? 0, icon: Building2, href: '/empresas', color: 'bg-blue-100 text-blue-600', subtitle: null },
+        ].map(({ label, value, icon: Icon, href, color, subtitle }) => (
           <Link key={label} href={href} className="group">
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:border-gray-300 transition-all">
               <div className="flex items-start justify-between">
@@ -257,6 +258,9 @@ export function DashboardClient() {
                   <p className="text-3xl font-bold text-rosa-800 mt-1">
                     {loading ? <span className="inline-block h-8 w-16 bg-gray-100 rounded animate-pulse" /> : value}
                   </p>
+                  {!loading && subtitle && (
+                    <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+                  )}
                 </div>
                 <div className={`p-2.5 rounded-xl ${color}`}>
                   <Icon className="h-5 w-5" />
