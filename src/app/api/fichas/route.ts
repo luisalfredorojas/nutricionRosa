@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { fichaCompletaSchema } from '@/lib/validators/ficha'
 import { calcularTodosLosIndicadores } from '@/lib/formulas/indicadores'
+import { escapeLikePattern } from '@/lib/utils'
 import type { SexoType } from '@/types/ficha'
 
 function traducirErrorDB(msg: string): string {
@@ -82,13 +83,46 @@ export async function POST(request: NextRequest) {
     let pacienteId: string = body.paciente_id
 
     if (!pacienteId) {
+      // Anti-duplicados: si ya existe un paciente con ese correo, NO creamos otro.
+      // Respondemos 409 con la info del paciente y su última ficha para que el
+      // frontend ofrezca registrar un seguimiento (o reutilizar el paciente).
+      const correoNormalizado = (data.correo ?? '').trim().toLowerCase()
+      if (correoNormalizado) {
+        const { data: existente } = await supabase
+          .from('pacientes')
+          .select('id, nombre, codigo')
+          .ilike('correo', escapeLikePattern(correoNormalizado))
+          .limit(1)
+          .maybeSingle()
+
+        if (existente) {
+          const { data: ultimaFicha } = await supabase
+            .from('fichas_nutricionales')
+            .select('id')
+            .eq('paciente_id', existente.id)
+            .order('fecha_consulta', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          return NextResponse.json(
+            {
+              error: `Ya existe un paciente con ese correo: ${existente.nombre} (${existente.codigo}).`,
+              code: 'DUPLICATE_PATIENT',
+              paciente: { id: existente.id, nombre: existente.nombre, codigo: existente.codigo },
+              ultimaFicha: ultimaFicha ? { id: ultimaFicha.id } : null,
+            },
+            { status: 409 }
+          )
+        }
+      }
+
       const { data: paciente, error: pacienteError } = await supabase
         .from('pacientes')
         .insert({
           nombre: data.nombre,
           fecha_nacimiento: data.fecha_nacimiento,
           sexo,
-          correo: data.correo || null,
+          correo: correoNormalizado || null,
           ciudad: data.ciudad || null,
           tipo_paciente: data.tipo_paciente ?? 'empresa',
           empresa_id: data.tipo_paciente === 'privado' ? null : (data.empresa_id || null),

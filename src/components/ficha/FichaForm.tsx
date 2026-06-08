@@ -12,6 +12,7 @@ import { FichaNutricionalForm } from './FichaNutricionalForm'
 import { DatosBalanzaForm } from './DatosBalanzaForm'
 import { HabitosForm } from './HabitosForm'
 import { IndicadoresCalculadosDisplay } from './IndicadoresCalculados'
+import { PacienteDuplicadoAlert } from './PacienteDuplicadoAlert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCircle, Check, RotateCcw } from 'lucide-react'
@@ -88,6 +89,11 @@ interface FormError {
   fields?: string[]
 }
 
+interface DuplicadoInfo {
+  paciente: { id: string; nombre: string; codigo: string }
+  ultimaFichaId: string | null
+}
+
 function getTodayString(): string {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -105,6 +111,7 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
   const [activeTab, setActiveTab] = useState<TabId>('personales')
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<FormError | null>(null)
+  const [duplicado, setDuplicado] = useState<DuplicadoInfo | null>(null)
   const [hasDraft, setHasDraft] = useState(false)
   const [draftSaved, setDraftSaved] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -225,23 +232,32 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
   }
 
   // Guarda la ficha (POST si no existe aún, PUT si ya fue creada). Retorna true si OK.
-  const persistFicha = async (data: FichaCompletaInput): Promise<boolean> => {
+  const persistFicha = async (data: FichaCompletaInput, pacienteIdOverride?: string): Promise<boolean> => {
     setFormError(null)
+    setDuplicado(null)
     // Lee del ref (síncrono), no del estado: evita que un guardado disparado antes
     // de que React aplique setCreatedFichaId vuelva a hacer POST y duplique la ficha.
     const targetId = createdFichaIdRef.current
     const url = targetId ? `/api/fichas/${targetId}` : '/api/fichas'
     const method = targetId ? 'PUT' : 'POST'
+    // Si el usuario eligió reutilizar un paciente existente, lo adjuntamos al body
+    // (el endpoint respeta body.paciente_id y no crea un paciente nuevo).
+    const payload = pacienteIdOverride ? { ...data, paciente_id: pacienteIdOverride } : data
 
     try {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
 
       if (!res.ok) {
         const body = await res.json()
+        // Paciente duplicado por correo: ofrecemos registrar seguimiento o reutilizar.
+        if (res.status === 409 && body.code === 'DUPLICATE_PATIENT' && body.paciente) {
+          setDuplicado({ paciente: body.paciente, ultimaFichaId: body.ultimaFicha?.id ?? null })
+          return false
+        }
         if (body.details?.fieldErrors) {
           const fields = Object.entries(body.details.fieldErrors as Record<string, string[]>)
             .map(([field, msgs]) => `${FIELD_LABELS[field] ?? field}: ${msgs[0]}`)
@@ -273,6 +289,18 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
     }
   }
 
+  // Navegación tras un guardado exitoso (reutilizada por onSubmit y por el flujo
+  // de "usar paciente existente").
+  const goAfterSave = () => {
+    const finalId = createdFichaIdRef.current ?? fichaId
+    const destination = redirectTo
+      ?? (isEditMode || finalId
+        ? `/fichas/${finalId}`
+        : (form.getValues('tipo_paciente') === 'privado' ? '/privados' : '/empresas'))
+    router.push(destination)
+    router.refresh()
+  }
+
   const onSubmit = async (data: FichaCompletaInput) => {
     if (savingRef.current) return  // candado: ignora doble clic / reenvíos en vuelo
     savingRef.current = true
@@ -280,13 +308,29 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
     try {
       const ok = await persistFicha(data)
       if (!ok) return
-      const finalId = createdFichaIdRef.current ?? fichaId
-      const destination = redirectTo
-        ?? (isEditMode || finalId
-          ? `/fichas/${finalId}`
-          : (form.getValues('tipo_paciente') === 'privado' ? '/privados' : '/empresas'))
-      router.push(destination)
-      router.refresh()
+      goAfterSave()
+    } finally {
+      savingRef.current = false
+      setSaving(false)
+    }
+  }
+
+  // Caso paciente duplicado SIN fichas previas: reutiliza el paciente existente
+  // y le adjunta esta ficha en vez de crear un duplicado. Continúa el flujo igual
+  // que un guardado normal: avanza de tab si quedan, o navega si es el final.
+  const usarPacienteExistente = async () => {
+    if (!duplicado || savingRef.current) return
+    savingRef.current = true
+    setSaving(true)
+    try {
+      const ok = await persistFicha(form.getValues(), duplicado.paciente.id)
+      if (!ok) return
+      const idx = TABS.findIndex((t) => t.id === activeTab)
+      if (activeTab === 'habitos' || idx === TABS.length - 1) {
+        goAfterSave()
+      } else {
+        setActiveTab(TABS[idx + 1].id)
+      }
     } finally {
       savingRef.current = false
       setSaving(false)
@@ -384,7 +428,7 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
           {/* Tab content */}
           <Card>
             <CardContent className="pt-6">
-              {activeTab === 'personales' && <DatosPersonalesForm form={form} disabledTipo={isEditMode} />}
+              {activeTab === 'personales' && <DatosPersonalesForm form={form} disabledTipo={isEditMode} isEditMode={isEditMode} />}
               {activeTab === 'nutricional' && <FichaNutricionalForm form={form} />}
               {activeTab === 'balanza' && <DatosBalanzaForm form={form} />}
               {activeTab === 'habitos' && <HabitosForm form={form} />}
@@ -439,6 +483,16 @@ export function FichaForm({ defaultTipoPaciente = 'empresa', redirectTo, fichaId
                 </div>
               </div>
             </div>
+          )}
+
+          {duplicado && (
+            <PacienteDuplicadoAlert
+              paciente={duplicado.paciente}
+              ultimaFichaId={duplicado.ultimaFichaId}
+              onUsarPaciente={usarPacienteExistente}
+              onDismiss={() => setDuplicado(null)}
+              usando={saving}
+            />
           )}
         </div>
 

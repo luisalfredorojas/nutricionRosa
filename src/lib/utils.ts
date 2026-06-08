@@ -21,3 +21,9 @@ export function formatDecimal(value: number | null | undefined, decimals = 1): s
   if (value === null || value === undefined) return '—'
   return value.toFixed(decimals)
 }
+
+// Escapa los comodines de SQL LIKE/ILIKE (\ % _) para que un valor con esos
+// caracteres (p. ej. un correo con guion bajo) haga match literal y no por patrón.
+export function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, (ch) => `\\${ch}`)
+}
