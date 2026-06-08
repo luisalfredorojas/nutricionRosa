@@ -8,22 +8,31 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Building2, User } from 'lucide-react'
+import { PacienteDuplicadoAlert } from './PacienteDuplicadoAlert'
 
 interface Empresa {
   id: string
   nombre: string
 }
 
+interface DuplicadoInfo {
+  paciente: { id: string; nombre: string; codigo: string }
+  ultimaFichaId: string | null
+}
+
 interface DatosPersonalesFormProps {
   form: UseFormReturn<FichaCompletaInput>
   disabledTipo?: boolean
+  isEditMode?: boolean
 }
 
-export function DatosPersonalesForm({ form, disabledTipo }: DatosPersonalesFormProps) {
+export function DatosPersonalesForm({ form, disabledTipo, isEditMode }: DatosPersonalesFormProps) {
   const { register, formState: { errors }, watch, setValue } = form
   const [empresas, setEmpresas] = useState<Empresa[]>([])
+  const [duplicado, setDuplicado] = useState<DuplicadoInfo | null>(null)
 
   const tipoPaciente = watch('tipo_paciente') ?? 'empresa'
+  const correoField = register('correo')
 
   useEffect(() => {
     fetch('/api/empresas')
@@ -31,6 +40,28 @@ export function DatosPersonalesForm({ form, disabledTipo }: DatosPersonalesFormP
       .then(({ data }) => setEmpresas(data ?? []))
       .catch(() => {})
   }, [])
+
+  // Al salir del campo correo, verifica si ya existe un paciente con ese correo.
+  // En edición no se chequea: el correo pertenece al propio paciente.
+  const checkCorreoDuplicado = async (correo: string) => {
+    if (isEditMode) return
+    const value = correo.trim()
+    if (value.length < 5 || !value.includes('@')) {
+      setDuplicado(null)
+      return
+    }
+    try {
+      const res = await fetch(`/api/pacientes/buscar?correo=${encodeURIComponent(value)}`)
+      const json = await res.json()
+      if (json?.existe && json.paciente) {
+        setDuplicado({ paciente: json.paciente, ultimaFichaId: json.ultimaFicha?.id ?? null })
+      } else {
+        setDuplicado(null)
+      }
+    } catch {
+      setDuplicado(null)
+    }
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -116,7 +147,11 @@ export function DatosPersonalesForm({ form, disabledTipo }: DatosPersonalesFormP
         <Input
           id="correo"
           type="email"
-          {...register('correo')}
+          {...correoField}
+          onBlur={(e) => {
+            correoField.onBlur(e)
+            checkCorreoDuplicado(e.target.value)
+          }}
           placeholder="correo@ejemplo.com"
         />
         {errors.correo && (
@@ -141,6 +176,17 @@ export function DatosPersonalesForm({ form, disabledTipo }: DatosPersonalesFormP
               <option key={e.id} value={e.id}>{e.nombre}</option>
             ))}
           </Select>
+        </div>
+      )}
+
+      {/* Aviso de paciente duplicado por correo (detección temprana) */}
+      {duplicado && (
+        <div className="md:col-span-2">
+          <PacienteDuplicadoAlert
+            paciente={duplicado.paciente}
+            ultimaFichaId={duplicado.ultimaFichaId}
+            onDismiss={() => setDuplicado(null)}
+          />
         </div>
       )}
     </div>
