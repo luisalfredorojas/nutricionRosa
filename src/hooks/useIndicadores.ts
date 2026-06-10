@@ -27,6 +27,7 @@ export interface IndicadoresData {
   totalPacientes: number
   atendidosPorMes: { mes: string; count: number }[]
   citasControl: number
+  ciudadesDisponibles?: string[]
   habitos: {
     descanso: { valor: string; count: number }[]
     nivel_estres: { valor: string; count: number }[]
@@ -41,6 +42,7 @@ export interface UseIndicadoresOptions {
   scope: 'empresa' | 'privado'
   empresaId?: string | null
   pacienteId?: string | null
+  ciudad?: string | null
   fechaDesde?: string | null
   fechaHasta?: string | null
 }
@@ -55,7 +57,7 @@ export interface UseIndicadoresReturn {
 export function useIndicadores(
   options: UseIndicadoresOptions
 ): UseIndicadoresReturn {
-  const { scope, empresaId, pacienteId, fechaDesde, fechaHasta } = options
+  const { scope, empresaId, pacienteId, ciudad, fechaDesde, fechaHasta } = options
   const [data, setData] = useState<IndicadoresData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -68,6 +70,7 @@ export function useIndicadores(
       params.set('scope', scope)
       if (empresaId) params.set('empresa_id', empresaId)
       if (pacienteId) params.set('paciente_id', pacienteId)
+      if (ciudad) params.set('ciudad', ciudad)
       if (fechaDesde) params.set('fecha_desde', fechaDesde)
       if (fechaHasta) params.set('fecha_hasta', fechaHasta)
       const res = await fetch(`/api/indicadores?${params.toString()}`, {
@@ -84,7 +87,7 @@ export function useIndicadores(
     } finally {
       setLoading(false)
     }
-  }, [scope, empresaId, pacienteId, fechaDesde, fechaHasta])
+  }, [scope, empresaId, pacienteId, ciudad, fechaDesde, fechaHasta])
 
   useEffect(() => {
     fetchData()
