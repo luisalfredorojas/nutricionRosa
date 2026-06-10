@@ -156,8 +156,20 @@ export async function GET(request: NextRequest) {
     const avg = (arr: number[]) =>
       arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null
 
-    let grasaResult: { deltaPromedio?: number; actual?: number; delta?: number } = {}
-    let musculoResult: { deltaPromedio?: number; actual?: number; delta?: number } = {}
+    type CambioResult = {
+      delta?: number
+      actual?: number
+      deltaPromedio?: number
+      mejoraronPct?: number
+      mejoraronCount?: number
+      totalConDato?: number
+      promedioSubida?: number
+      promedioBajada?: number
+    }
+    let grasaResult: CambioResult = {}
+    let musculoResult: CambioResult = {}
+
+    const round1 = (n: number) => Math.round(n * 10) / 10
 
     if (scope === 'privado') {
       const last = latestFichas[0]
@@ -165,13 +177,31 @@ export async function GET(request: NextRequest) {
       if (last?.porcentaje_masa_muscular != null) musculoResult.actual = last.porcentaje_masa_muscular
       const gd = grasaDeltas[0]?.delta
       const md = musculoDeltas[0]?.delta
-      if (gd != null) grasaResult.delta = Math.round(gd * 10) / 10
-      if (md != null) musculoResult.delta = Math.round(md * 10) / 10
+      if (gd != null) grasaResult.delta = round1(gd)
+      if (md != null) musculoResult.delta = round1(md)
     } else {
-      const g = avg(grasaDeltas.map((d) => d.delta))
-      const m = avg(musculoDeltas.map((d) => d.delta))
-      if (g != null) grasaResult.deltaPromedio = Math.round(g * 10) / 10
-      if (m != null) musculoResult.deltaPromedio = Math.round(m * 10) / 10
+      // Para empresa: % que mejoró + promedios de subida y bajada por métrica.
+      // Mejora: músculo = subir (delta > 0); grasa = bajar (delta < 0).
+      const computeCambio = (deltas: number[], metric: 'grasa' | 'musculo'): CambioResult => {
+        if (deltas.length === 0) return {}
+        const subidas = deltas.filter((d) => d > 0)
+        const bajadas = deltas.filter((d) => d < 0)
+        const mejoraron = metric === 'musculo' ? subidas : bajadas
+        const neto = avg(deltas)
+        const ps = avg(subidas)
+        const pb = avg(bajadas)
+        const res: CambioResult = {
+          totalConDato: deltas.length,
+          mejoraronCount: mejoraron.length,
+          mejoraronPct: Math.round((mejoraron.length / deltas.length) * 100),
+        }
+        if (neto != null) res.deltaPromedio = round1(neto)
+        if (ps != null) res.promedioSubida = round1(ps)
+        if (pb != null) res.promedioBajada = round1(pb)
+        return res
+      }
+      grasaResult = computeCambio(grasaDeltas.map((d) => d.delta), 'grasa')
+      musculoResult = computeCambio(musculoDeltas.map((d) => d.delta), 'musculo')
     }
 
     // Mejores cambios (empresa only): top 3 por mayor reducción de grasa o aumento de músculo

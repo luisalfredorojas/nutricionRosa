@@ -23,7 +23,7 @@ import {
   Dumbbell,
   CalendarCheck,
 } from 'lucide-react'
-import { useIndicadores } from '@/hooks/useIndicadores'
+import { useIndicadores, type CambioMetric } from '@/hooks/useIndicadores'
 import { formatDecimal } from '@/lib/utils'
 import { DateRangeFilter } from './DateRangeFilter'
 import { HabitoDistribucion } from './HabitoDistribucion'
@@ -49,11 +49,12 @@ interface StatCardProps {
   title: string
   value: string
   subtitle?: string
+  extra?: React.ReactNode
   icon: React.ComponentType<{ className?: string }>
   valueClassName?: string
 }
 
-function StatCard({ title, value, subtitle, icon: Icon, valueClassName }: StatCardProps) {
+function StatCard({ title, value, subtitle, extra, icon: Icon, valueClassName }: StatCardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
       <div className="flex items-start justify-between">
@@ -63,6 +64,7 @@ function StatCard({ title, value, subtitle, icon: Icon, valueClassName }: StatCa
           </p>
           <p className={`text-2xl font-bold mt-1 ${valueClassName ?? 'text-rosa-800'}`}>{value}</p>
           {subtitle && <p className="text-xs text-rosa-400 mt-1">{subtitle}</p>}
+          {extra && <div className="mt-1.5">{extra}</div>}
         </div>
         <div className="p-2.5 rounded-xl bg-rosa-100">
           <Icon className="h-5 w-5 text-rosa-600" />
@@ -81,6 +83,79 @@ function deltaColorClass(delta: number | null | undefined, metric: 'grasa' | 'mu
   if (delta == null || delta === 0) return 'text-rosa-800'
   const isImprovement = metric === 'musculo' ? delta > 0 : delta < 0
   return isImprovement ? 'text-green-600' : 'text-red-600'
+}
+
+interface CambioCard {
+  value: string
+  subtitle: string
+  extra: React.ReactNode | null
+  colorDelta: number | null
+}
+
+/**
+ * Construye el contenido de las cards "Cambio % Grasa/Músculo".
+ * - Empresa: valor = % de pacientes que mejoró; debajo, los promedios de subida y bajada.
+ * - Privado: se mantiene el cambio individual (última − primera).
+ */
+function buildCambioCard(
+  m: CambioMetric | undefined,
+  metric: 'grasa' | 'musculo',
+  scope: 'empresa' | 'privado'
+): CambioCard {
+  if (!m) return { value: '—', subtitle: '', extra: null, colorDelta: null }
+
+  if (scope === 'privado') {
+    const d = m.delta ?? null
+    return {
+      value: d != null ? `${d > 0 ? '+' : ''}${formatDecimal(d, 1)}%` : '—',
+      subtitle: 'Primera vs última',
+      extra: null,
+      colorDelta: d,
+    }
+  }
+
+  // Empresa
+  const total = m.totalConDato ?? 0
+  if (total === 0) {
+    return { value: '—', subtitle: 'Sin datos de seguimiento', extra: null, colorDelta: null }
+  }
+  const verbo = metric === 'musculo' ? 'ganaron músculo' : 'bajaron grasa'
+
+  // Promedios de subida (↑) y bajada (↓). El color marca si es mejora (verde) o no (rojo).
+  const partes: React.ReactNode[] = []
+  if (m.promedioSubida != null) {
+    partes.push(
+      <span key="sub" className={metric === 'musculo' ? 'text-green-600' : 'text-red-500'}>
+        ↑ {formatDecimal(Math.abs(m.promedioSubida), 1)}%
+      </span>
+    )
+  }
+  if (m.promedioBajada != null) {
+    partes.push(
+      <span key="baj" className={metric === 'grasa' ? 'text-green-600' : 'text-red-500'}>
+        ↓ {formatDecimal(Math.abs(m.promedioBajada), 1)}%
+      </span>
+    )
+  }
+  const extra =
+    partes.length > 0 ? (
+      <p className="text-xs text-gray-400">
+        Prom.{' '}
+        {partes.map((p, i) => (
+          <span key={i}>
+            {i > 0 && <span className="text-gray-300"> · </span>}
+            {p}
+          </span>
+        ))}
+      </p>
+    ) : null
+
+  return {
+    value: `${m.mejoraronPct ?? 0}%`,
+    subtitle: `${m.mejoraronCount ?? 0} de ${total} ${verbo}`,
+    extra,
+    colorDelta: null,
+  }
 }
 
 export function IndicadoresDashboard({
@@ -141,23 +216,8 @@ export function IndicadoresDashboard({
     return undefined
   }, [data, scope])
 
-  const grasaDelta = useMemo<number | null>(() => {
-    if (!data) return null
-    return scope === 'privado' ? data.grasa.delta ?? null : data.grasa.deltaPromedio ?? null
-  }, [data, scope])
-
-  const musculoDelta = useMemo<number | null>(() => {
-    if (!data) return null
-    return scope === 'privado' ? data.musculo.delta ?? null : data.musculo.deltaPromedio ?? null
-  }, [data, scope])
-
-  const grasaDisplay = useMemo(() => {
-    return grasaDelta != null ? `${grasaDelta > 0 ? '+' : ''}${formatDecimal(grasaDelta, 1)}%` : '—'
-  }, [grasaDelta])
-
-  const musculoDisplay = useMemo(() => {
-    return musculoDelta != null ? `${musculoDelta > 0 ? '+' : ''}${formatDecimal(musculoDelta, 1)}%` : '—'
-  }, [musculoDelta])
+  const grasaCard = useMemo(() => buildCambioCard(data?.grasa, 'grasa', scope), [data, scope])
+  const musculoCard = useMemo(() => buildCambioCard(data?.musculo, 'musculo', scope), [data, scope])
 
   return (
     <div>
@@ -199,17 +259,19 @@ export function IndicadoresDashboard({
           />
           <StatCard
             title="Cambio % Grasa"
-            value={loading ? '...' : grasaDisplay}
-            subtitle={scope === 'empresa' ? 'Promedio primera vs última' : 'Primera vs última'}
+            value={loading ? '...' : grasaCard.value}
+            subtitle={loading ? undefined : grasaCard.subtitle}
+            extra={loading ? null : grasaCard.extra}
             icon={TrendingDown}
-            valueClassName={loading ? undefined : deltaColorClass(grasaDelta, 'grasa')}
+            valueClassName={loading ? undefined : deltaColorClass(grasaCard.colorDelta, 'grasa')}
           />
           <StatCard
             title="Cambio % Músculo"
-            value={loading ? '...' : musculoDisplay}
-            subtitle={scope === 'empresa' ? 'Promedio primera vs última' : 'Primera vs última'}
+            value={loading ? '...' : musculoCard.value}
+            subtitle={loading ? undefined : musculoCard.subtitle}
+            extra={loading ? null : musculoCard.extra}
             icon={Dumbbell}
-            valueClassName={loading ? undefined : deltaColorClass(musculoDelta, 'musculo')}
+            valueClassName={loading ? undefined : deltaColorClass(musculoCard.colorDelta, 'musculo')}
           />
           <StatCard
             title="Citas Control"
