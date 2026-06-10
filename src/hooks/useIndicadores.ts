@@ -2,10 +2,24 @@
 
 import { useCallback, useEffect, useState } from 'react'
 
+// Resultado de cambio de composición corporal (grasa/músculo) para una empresa o paciente.
+export interface CambioMetric {
+  // Scope privado (un paciente)
+  delta?: number          // cambio individual última − primera
+  actual?: number         // valor en la última ficha
+  // Scope empresa (agregado)
+  deltaPromedio?: number  // promedio neto de los cambios (puede cancelarse)
+  mejoraronPct?: number   // % de pacientes que mejoraron (músculo: subió; grasa: bajó)
+  mejoraronCount?: number // # de pacientes que mejoraron
+  totalConDato?: number   // # de pacientes con cambio medible (2+ fichas con dato)
+  promedioSubida?: number // promedio de los que subieron (delta > 0)
+  promedioBajada?: number // promedio de los que bajaron (delta < 0)
+}
+
 export interface IndicadoresData {
   peso: { promedio?: number; actual?: number; delta?: number }
-  grasa: { deltaPromedio?: number; actual?: number; delta?: number }
-  musculo: { deltaPromedio?: number; actual?: number; delta?: number }
+  grasa: CambioMetric
+  musculo: CambioMetric
   mejoresCambios?: { paciente_nombre: string; metric: string; delta: number }[]
   distribucionIMC: { categoria: string; count: number }[]
   totalMujeres?: number
