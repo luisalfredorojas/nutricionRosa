@@ -63,3 +63,34 @@ export const CONSUMO_TABACO_OPTIONS = [
 ] as const
 
 export const SEXO_OPTIONS = ['Femenino', 'Masculino'] as const
+
+// Ciudades principales de Ecuador (mayúsculas, sin acentos, para coincidir con la
+// normalización UPPER(TRIM()) que se aplica al guardar). Lista extensible.
+export const CIUDADES_ECUADOR = [
+  'AMBATO',
+  'AZOGUES',
+  'BABAHOYO',
+  'BAHIA DE CARAQUEZ',
+  'CUENCA',
+  'DURAN',
+  'ESMERALDAS',
+  'GUARANDA',
+  'GUAYAQUIL',
+  'IBARRA',
+  'LA LIBERTAD',
+  'LATACUNGA',
+  'LOJA',
+  'MACHALA',
+  'MANTA',
+  'MILAGRO',
+  'PORTOVIEJO',
+  'PUYO',
+  'QUEVEDO',
+  'QUITO',
+  'RIOBAMBA',
+  'SALINAS',
+  'SANTA ELENA',
+  'SANTO DOMINGO',
+  'TENA',
+  'TULCAN',
+] as const

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { fichaCompletaSchema } from '@/lib/validators/ficha'
 import { calcularTodosLosIndicadores } from '@/lib/formulas/indicadores'
+import { normalizeCiudad } from '@/lib/utils'
 import type { SexoType } from '@/types/ficha'
 import type { Database } from '@/types/database'
 
@@ -128,7 +129,7 @@ export async function PUT(
     if (data.fecha_nacimiento !== undefined) pacientePayload.fecha_nacimiento = data.fecha_nacimiento
     if (data.sexo !== undefined) pacientePayload.sexo = data.sexo
     if (data.correo !== undefined) pacientePayload.correo = data.correo
-    if (data.ciudad !== undefined) pacientePayload.ciudad = data.ciudad
+    if (data.ciudad !== undefined) pacientePayload.ciudad = normalizeCiudad(data.ciudad)
     if (data.tipo_paciente !== undefined) pacientePayload.tipo_paciente = data.tipo_paciente
     if (data.empresa_id !== undefined) pacientePayload.empresa_id = data.empresa_id || null
 
