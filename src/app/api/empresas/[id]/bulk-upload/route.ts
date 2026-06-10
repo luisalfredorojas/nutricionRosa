@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { calcularTodosLosIndicadores } from '@/lib/formulas/indicadores'
+import { normalizeCiudad } from '@/lib/utils'
 import type { SexoType } from '@/types/ficha'
 
 // ── Esquemas ─────────────────────────────────────────────────────────────────
@@ -451,7 +452,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             fecha_nacimiento: patient.fecha_nacimiento,
             sexo,
             correo: patient.correo,
-            ciudad: patient.ciudad ?? null,
+            ciudad: normalizeCiudad(patient.ciudad),
             tipo_paciente: 'empresa',
             empresa_id: empresaId,
           })

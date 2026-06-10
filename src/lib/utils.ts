@@ -27,3 +27,10 @@ export function formatDecimal(value: number | null | undefined, decimals = 1): s
 export function escapeLikePattern(value: string): string {
   return value.replace(/[\\%_]/g, (ch) => `\\${ch}`)
 }
+
+// Normaliza el nombre de una ciudad a MAYÚSCULAS sin espacios sobrantes, para
+// evitar duplicados como "Guayaquil" / "GUAYAQUIL" / " guayaquil ". Vacío → null.
+export function normalizeCiudad(ciudad: string | null | undefined): string | null {
+  const v = (ciudad ?? '').trim().replace(/\s+/g, ' ').toUpperCase()
+  return v || null
+}

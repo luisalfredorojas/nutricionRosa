@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { fichaCompletaSchema } from '@/lib/validators/ficha'
 import { calcularTodosLosIndicadores } from '@/lib/formulas/indicadores'
-import { escapeLikePattern } from '@/lib/utils'
+import { escapeLikePattern, normalizeCiudad } from '@/lib/utils'
 import type { SexoType } from '@/types/ficha'
 
 function traducirErrorDB(msg: string): string {
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
           fecha_nacimiento: data.fecha_nacimiento,
           sexo,
           correo: correoNormalizado || null,
-          ciudad: data.ciudad || null,
+          ciudad: normalizeCiudad(data.ciudad),
           tipo_paciente: data.tipo_paciente ?? 'empresa',
           empresa_id: data.tipo_paciente === 'privado' ? null : (data.empresa_id || null),
         })

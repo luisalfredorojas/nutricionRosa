@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { UseFormReturn } from 'react-hook-form'
 import type { FichaCompletaInput } from '@/lib/validators/ficha'
-import { SEXO_OPTIONS } from '@/lib/constants'
+import { SEXO_OPTIONS, CIUDADES_ECUADOR } from '@/lib/constants'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -33,6 +33,14 @@ export function DatosPersonalesForm({ form, disabledTipo, isEditMode }: DatosPer
 
   const tipoPaciente = watch('tipo_paciente') ?? 'empresa'
   const correoField = register('correo')
+
+  // Lista de ciudades para el dropdown. Si el paciente ya tiene una ciudad fuera de
+  // la lista (datos antiguos), se incluye al inicio para no perderla al editar.
+  const ciudadActual = (watch('ciudad') ?? '').trim()
+  const ciudadesOptions =
+    ciudadActual && !(CIUDADES_ECUADOR as readonly string[]).includes(ciudadActual)
+      ? [ciudadActual, ...CIUDADES_ECUADOR]
+      : [...CIUDADES_ECUADOR]
 
   useEffect(() => {
     fetch('/api/empresas')
@@ -161,11 +169,11 @@ export function DatosPersonalesForm({ form, disabledTipo, isEditMode }: DatosPer
 
       <div className="space-y-1.5">
         <Label htmlFor="ciudad">Ciudad</Label>
-        <Input
-          id="ciudad"
-          {...register('ciudad')}
-          placeholder="Ej: Santiago"
-        />
+        <Select id="ciudad" {...register('ciudad')} placeholder="Seleccionar ciudad...">
+          {ciudadesOptions.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </Select>
       </div>
 
       {tipoPaciente === 'empresa' && (
