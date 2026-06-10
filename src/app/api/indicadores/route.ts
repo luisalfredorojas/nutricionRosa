@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
     const pacienteId = searchParams.get('paciente_id')
     const fechaDesde = searchParams.get('fecha_desde')
     const fechaHasta = searchParams.get('fecha_hasta')
+    const ciudad = searchParams.get('ciudad')
 
     const supabase = await createClient()
 
@@ -82,6 +83,9 @@ export async function GET(request: NextRequest) {
     }
     if (scope === 'privado' && pacienteId) {
       query = query.eq('paciente_id', pacienteId)
+    }
+    if (scope === 'empresa' && ciudad) {
+      query = query.eq('pacientes.ciudad', ciudad)
     }
     if (fechaDesde) query = query.gte('fecha_consulta', fechaDesde)
     if (fechaHasta) query = query.lte('fecha_consulta', fechaHasta)
@@ -306,6 +310,25 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Ciudades disponibles para el filtro (empresa): TODAS las ciudades de sus pacientes,
+    // sin aplicar el filtro de ciudad activo, para no vaciar el dropdown al filtrar.
+    let ciudadesDisponibles: string[] | undefined
+    if (scope === 'empresa') {
+      let ciudadesQuery = supabase
+        .from('pacientes')
+        .select('ciudad')
+        .not('ciudad', 'is', null)
+      if (empresaId) ciudadesQuery = ciudadesQuery.eq('empresa_id', empresaId)
+      else ciudadesQuery = ciudadesQuery.eq('tipo_paciente', 'empresa')
+      const { data: ciudadesData } = await ciudadesQuery
+      const ciudadesSet = new Set<string>()
+      for (const row of ciudadesData ?? []) {
+        const c = (row.ciudad as string | null)?.trim()
+        if (c) ciudadesSet.add(c)
+      }
+      ciudadesDisponibles = Array.from(ciudadesSet).sort((a, b) => a.localeCompare(b))
+    }
+
     return NextResponse.json({
       peso: pesoResult,
       grasa: grasaResult,
@@ -318,6 +341,7 @@ export async function GET(request: NextRequest) {
       atendidosPorMes,
       citasControl,
       habitos,
+      ciudadesDisponibles,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error desconocido'

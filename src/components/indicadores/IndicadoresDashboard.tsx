@@ -16,6 +16,7 @@ import {
   Legend,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select } from '@/components/ui/select'
 import {
   Users,
   Scale,
@@ -168,6 +169,9 @@ export function IndicadoresDashboard({
 
   const [desde, setDesde] = useState<string | null>(searchParams.get('desde'))
   const [hasta, setHasta] = useState<string | null>(searchParams.get('hasta'))
+  // Filtro de ciudad (solo empresa). No se persiste en URL: al cambiar de empresa
+  // el dashboard se re-monta y vuelve a "Todas".
+  const [ciudad, setCiudad] = useState<string | null>(null)
 
   const handleDateChange = useCallback(
     (d: string | null, h: string | null) => {
@@ -190,6 +194,7 @@ export function IndicadoresDashboard({
     scope,
     empresaId: scope === 'empresa' ? entityId : null,
     pacienteId: scope === 'privado' ? entityId : null,
+    ciudad: scope === 'empresa' ? ciudad : null,
     fechaDesde: desde,
     fechaHasta: hasta,
   })
@@ -232,6 +237,21 @@ export function IndicadoresDashboard({
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-2">
+          {scope === 'empresa' && (data?.ciudadesDisponibles?.length ?? 0) > 0 && (
+            <div>
+              <label className="block text-xs font-medium text-rosa-600 mb-1">Ciudad</label>
+              <Select
+                value={ciudad ?? ''}
+                onChange={(e) => setCiudad(e.target.value || null)}
+                className="w-44"
+              >
+                <option value="">Todas las ciudades</option>
+                {data?.ciudadesDisponibles?.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </Select>
+            </div>
+          )}
           <DateRangeFilter desde={desde} hasta={hasta} onChange={handleDateChange} />
           <ExportIndicadoresPDF scope={scope} />
         </div>
