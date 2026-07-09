@@ -120,6 +120,12 @@ export default async function FichaDetailPage({ params }: PageProps) {
             fichaId={params.id}
             pacienteId={(ficha as any).paciente_id ?? ''}
             pacienteNombre={paciente?.nombre}
+            label="Descargar Ficha"
+          />
+          <ExportFichaPDF
+            fichaId={params.id}
+            pacienteId={(ficha as any).paciente_id ?? ''}
+            pacienteNombre={paciente?.nombre}
             targetId={`tabla-comparativa-${(ficha as any).paciente_id}`}
             label="Descargar Tabla"
           />
