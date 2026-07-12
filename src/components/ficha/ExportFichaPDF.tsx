@@ -46,7 +46,6 @@ export function ExportFichaPDF({ fichaId, pacienteNombre, targetId, label = 'Exp
         },
       })
 
-      const imgData = canvas.toDataURL('image/png')
       const isLandscape = canvas.width > canvas.height
       const pdf = new jsPDF({
         orientation: isLandscape ? 'landscape' : 'portrait',
@@ -57,22 +56,41 @@ export function ExportFichaPDF({ fichaId, pacienteNombre, targetId, label = 'Exp
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
       const margin = 10
-      const usableWidth = pageWidth - margin * 2
-      const ratio = canvas.height / canvas.width
-      const imgWidth = usableWidth
-      const imgHeight = imgWidth * ratio
+      const imgWidth = pageWidth - margin * 2
+      // Escala uniforme: el ancho del canvas se ajusta a imgWidth (mm).
+      const pxPerMm = canvas.width / imgWidth
+      const pageUsableHeightPx = Math.floor((pageHeight - margin * 2) * pxPerMm)
 
-      if (imgHeight <= pageHeight - margin * 2) {
-        pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight)
-      } else {
-        let position = 0
-        const pageUsable = pageHeight - margin * 2
-        const totalPages = Math.ceil(imgHeight / pageUsable)
-        for (let p = 0; p < totalPages; p++) {
-          if (p > 0) pdf.addPage()
-          pdf.addImage(imgData, 'PNG', margin, margin - position, imgWidth, imgHeight)
-          position += pageUsable
+      // Cortamos el canvas en franjas del alto de una página y agregamos cada
+      // franja a su propia página, siempre desde el margen superior. Esto evita
+      // que el contenido se solape o se duplique entre páginas.
+      let renderedPx = 0
+      let pageIndex = 0
+      while (renderedPx < canvas.height) {
+        const sliceHeightPx = Math.min(pageUsableHeightPx, canvas.height - renderedPx)
+
+        const pageCanvas = document.createElement('canvas')
+        pageCanvas.width = canvas.width
+        pageCanvas.height = sliceHeightPx
+        const ctx = pageCanvas.getContext('2d')
+        if (ctx) {
+          ctx.fillStyle = '#ffffff'
+          ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
+          ctx.drawImage(
+            canvas,
+            0, renderedPx, canvas.width, sliceHeightPx,
+            0, 0, canvas.width, sliceHeightPx,
+          )
         }
+
+        const sliceImgData = pageCanvas.toDataURL('image/png')
+        const sliceHeightMm = sliceHeightPx / pxPerMm
+
+        if (pageIndex > 0) pdf.addPage()
+        pdf.addImage(sliceImgData, 'PNG', margin, margin, imgWidth, sliceHeightMm)
+
+        renderedPx += sliceHeightPx
+        pageIndex++
       }
 
       const date = new Date().toISOString().split('T')[0]
