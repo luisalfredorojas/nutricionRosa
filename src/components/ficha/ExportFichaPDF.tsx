@@ -35,6 +35,15 @@ export function ExportFichaPDF({ fichaId, pacienteNombre, targetId, label = 'Exp
         scale: 2,
         backgroundColor: '#ffffff',
         useCORS: true,
+        // html2canvas trabaja sobre un clon del DOM: removemos aquí los campos y
+        // tarjetas vacíos (marcados con data-pdf-hide) para que NO aparezcan en el
+        // PDF, sin alterar lo que se ve en la página web.
+        onclone: (clonedDoc: Document) => {
+          const clonedTarget = clonedDoc.getElementById(elementId)
+          clonedTarget
+            ?.querySelectorAll('[data-pdf-hide]')
+            .forEach((node) => node.remove())
+        },
       })
 
       const imgData = canvas.toDataURL('image/png')

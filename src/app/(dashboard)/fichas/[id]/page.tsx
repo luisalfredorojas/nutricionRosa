@@ -78,8 +78,8 @@ export default async function FichaDetailPage({ params }: PageProps) {
     riesgoMetabolico: ficha.riesgo_metabolico as IndicadoresCalculados['riesgoMetabolico'],
   }
 
-  // Una tarjeta solo se muestra si tiene al menos un dato registrado (0 y null se
-  // consideran vacíos en las medidas numéricas).
+  // Solo para el PDF: si una tarjeta no tiene ningún dato se oculta por completo
+  // (en la web siempre se muestra). 0 y null cuentan como vacío en las medidas.
   const hasBalanza =
     !!ficha.porcentaje_masa_grasa ||
     !!ficha.porcentaje_masa_muscular ||
@@ -100,13 +100,24 @@ export default async function FichaDetailPage({ params }: PageProps) {
     !!ficha.no_le_gusta_comer ||
     !!(ficha as any).le_gusta_comer
 
-  function Field({ label, value }: { label: string; value: string | number | null | undefined }) {
-    // No renderizar campos vacíos (null, undefined o string vacío)
-    if (value === null || value === undefined || value === '') return null
+  function Field({
+    label,
+    value,
+    pdfEmpty,
+  }: {
+    label: string
+    value: string | number | null | undefined
+    pdfEmpty?: boolean
+  }) {
+    // El campo SIEMPRE se muestra en la web. Si está vacío se marca con
+    // data-pdf-hide para removerlo únicamente al exportar el PDF
+    // (ver ExportFichaPDF → html2canvas onclone). `pdfEmpty` permite tratar
+    // como vacíos valores numéricos en 0 (ej: % masa grasa 0%).
+    const isEmpty = pdfEmpty ?? (value === null || value === undefined || value === '')
     return (
-      <div>
+      <div data-pdf-hide={isEmpty ? '' : undefined}>
         <p className="text-xs text-rosa-500 font-medium uppercase tracking-wide">{label}</p>
-        <p className="text-sm text-rosa-800 mt-0.5">{value}</p>
+        <p className="text-sm text-rosa-800 mt-0.5">{value ?? '—'}</p>
       </div>
     )
   }
@@ -201,7 +212,13 @@ export default async function FichaDetailPage({ params }: PageProps) {
                 <Field label="Talla" value={ficha.talla_m ? `${ficha.talla_m} m` : null} />
                 <Field label="Cintura" value={ficha.circunferencia_cintura ? `${ficha.circunferencia_cintura} cm` : null} />
                 <Field label="Cadera" value={ficha.circunferencia_cadera ? `${ficha.circunferencia_cadera} cm` : null} />
-                <Field label="Brazo" value={fichaAny.circunferencia_brazo ? `${fichaAny.circunferencia_brazo} cm` : null} />
+                {(fichaAny.circunferencia_brazo != null) && (
+                  <Field
+                    label="Brazo"
+                    value={`${fichaAny.circunferencia_brazo} cm`}
+                    pdfEmpty={!fichaAny.circunferencia_brazo}
+                  />
+                )}
                 {paciente?.sexo === 'Femenino' && (
                   <Field
                     label="Última menstruación"
@@ -231,23 +248,20 @@ export default async function FichaDetailPage({ params }: PageProps) {
           </Card>
 
           {/* Datos balanza */}
-          {hasBalanza && (
-            <Card>
-              <CardHeader><CardTitle>Datos Balanza</CardTitle></CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Field label="% Masa grasa" value={ficha.porcentaje_masa_grasa ? `${ficha.porcentaje_masa_grasa}%` : null} />
-                  <Field label="% Masa muscular" value={ficha.porcentaje_masa_muscular ? `${ficha.porcentaje_masa_muscular}%` : null} />
-                  <Field label="Edad metabólica" value={ficha.edad_metabolica || null} />
-                  <Field label="Grasa visceral" value={ficha.grasa_visceral || null} />
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <Card data-pdf-hide={hasBalanza ? undefined : ''}>
+            <CardHeader><CardTitle>Datos Balanza</CardTitle></CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Field label="% Masa grasa" value={ficha.porcentaje_masa_grasa != null ? `${ficha.porcentaje_masa_grasa}%` : null} pdfEmpty={!ficha.porcentaje_masa_grasa} />
+                <Field label="% Masa muscular" value={ficha.porcentaje_masa_muscular != null ? `${ficha.porcentaje_masa_muscular}%` : null} pdfEmpty={!ficha.porcentaje_masa_muscular} />
+                <Field label="Edad metabólica" value={ficha.edad_metabolica} pdfEmpty={!ficha.edad_metabolica} />
+                <Field label="Grasa visceral" value={ficha.grasa_visceral} pdfEmpty={!ficha.grasa_visceral} />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Hábitos */}
-          {hasHabitos && (
-          <Card>
+          <Card data-pdf-hide={hasHabitos ? undefined : ''}>
             <CardHeader><CardTitle>Hábitos</CardTitle></CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -276,7 +290,6 @@ export default async function FichaDetailPage({ params }: PageProps) {
               )}
             </CardContent>
           </Card>
-          )}
 
           {/* Historial de seguimientos */}
           <Card>
