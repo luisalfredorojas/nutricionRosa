@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { IndicadoresCalculadosDisplay } from '@/components/ficha/IndicadoresCalculados'
 import { TablaComparativa } from '@/components/ficha/TablaComparativa'
 import { ExportFichaPDF } from '@/components/ficha/ExportFichaPDF'
+import { ExportFichasPacientePDF } from '@/components/ficha/ExportFichasPacientePDF'
+import { FichaExportView } from '@/components/ficha/FichaExportView'
 import type { IndicadoresCalculados } from '@/types/ficha'
 import { formatDate, formatDecimal } from '@/lib/utils'
 import { ChevronLeft, Pencil, Plus } from 'lucide-react'
@@ -16,6 +18,15 @@ import { DeleteFichaButton } from '@/components/ficha/DeleteFichaButton'
 
 interface PageProps {
   params: { id: string }
+}
+
+// Etiqueta de cada ficha dentro del PDF (fichas ordenadas de la más antigua a la
+// más reciente): la primera es la inicial, la última es el último control y las
+// intermedias se numeran como "Control número N".
+function tagForFicha(index: number, total: number): string {
+  if (index === 0) return 'Ficha Inicial'
+  if (index === total - 1) return 'Último control'
+  return `Control número ${index}`
 }
 
 export default async function FichaDetailPage({ params }: PageProps) {
@@ -41,6 +52,25 @@ export default async function FichaDetailPage({ params }: PageProps) {
     .select('id, fecha_consulta, peso_kg, imc, dx_grasa, riesgo_metabolico')
     .eq('ficha_padre_id' as any, params.id)
     .order('fecha_consulta', { ascending: false })
+
+  const pacienteId: string = (ficha as any).paciente_id ?? ''
+
+  // Todas las fichas del paciente (inicial + controles) ordenadas de la más
+  // antigua a la más reciente, para exportarlas juntas en un solo PDF.
+  const { data: todasLasFichas } = await supabase
+    .from('fichas_nutricionales')
+    .select(`
+      *,
+      pacientes (
+        *,
+        empresas (*)
+      )
+    `)
+    .eq('paciente_id', pacienteId)
+    .order('fecha_consulta', { ascending: true })
+    .order('created_at', { ascending: true })
+
+  const fichasParaPDF = (todasLasFichas ?? []) as any[]
 
   const paciente = ficha.pacientes as {
     nombre: string
@@ -151,17 +181,16 @@ export default async function FichaDetailPage({ params }: PageProps) {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <ExportFichaPDF
-            fichaId={params.id}
-            pacienteId={(ficha as any).paciente_id ?? ''}
+          <ExportFichasPacientePDF
+            containerId={`fichas-export-all-${pacienteId}`}
             pacienteNombre={paciente?.nombre}
-            label="Descargar Ficha"
+            label="Descargar Fichas"
           />
           <ExportFichaPDF
             fichaId={params.id}
-            pacienteId={(ficha as any).paciente_id ?? ''}
+            pacienteId={pacienteId}
             pacienteNombre={paciente?.nombre}
-            targetId={`tabla-comparativa-${(ficha as any).paciente_id}`}
+            targetId={`tabla-comparativa-${pacienteId}`}
             label="Descargar Tabla"
           />
           <DeleteFichaButton
@@ -371,9 +400,32 @@ export default async function FichaDetailPage({ params }: PageProps) {
       <div className="mt-8">
         <h2 className="text-lg font-bold text-rosa-800 mb-3">Tabla Comparativa</h2>
         <TablaComparativa
-          pacienteId={(ficha as any).paciente_id}
+          pacienteId={pacienteId}
           currentFichaId={params.id}
         />
+      </div>
+
+      {/* Contenedor OCULTO: todas las fichas del paciente (inicial + controles)
+          renderadas para exportarlas juntas en un único PDF. Se posiciona fuera
+          de la pantalla; no se ve en la web pero html2canvas sí puede capturarlo. */}
+      <div
+        id={`fichas-export-all-${pacienteId}`}
+        aria-hidden="true"
+        style={{ position: 'fixed', left: '-10000px', top: 0, width: '780px', background: '#ffffff', zIndex: -1 }}
+      >
+        {fichasParaPDF.map((f, i) => (
+          <div
+            key={f.id}
+            data-ficha-block
+            style={{ width: '780px', background: '#ffffff' }}
+            className="p-6"
+          >
+            <FichaExportView
+              ficha={f}
+              tag={tagForFicha(i, fichasParaPDF.length)}
+            />
+          </div>
+        ))}
       </div>
     </div>
   )
