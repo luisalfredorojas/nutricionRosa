@@ -21,18 +21,6 @@ export default async function SeguimientoPage({ params }: PageProps) {
     .select(`
       id,
       paciente_id,
-      fecha_consulta,
-      peso_kg,
-      talla_m,
-      imc,
-      circunferencia_cintura,
-      circunferencia_cadera,
-      circunferencia_brazo,
-      indice_cc,
-      porcentaje_masa_grasa,
-      porcentaje_masa_muscular,
-      edad_metabolica,
-      grasa_visceral,
       pacientes (
         nombre,
         sexo,
@@ -47,6 +35,32 @@ export default async function SeguimientoPage({ params }: PageProps) {
 
   if (!ficha) notFound()
 
+  // La comparación debe ser contra la ÚLTIMA ficha creada del paciente, no
+  // necesariamente contra la ficha desde la que se hizo clic (que suele ser la
+  // inicial). Buscamos la más reciente por fecha de consulta y, en empate, por
+  // fecha de creación.
+  const { data: fichaReciente } = await supabase
+    .from('fichas_nutricionales')
+    .select(`
+      fecha_consulta,
+      peso_kg,
+      talla_m,
+      imc,
+      circunferencia_cintura,
+      circunferencia_cadera,
+      circunferencia_brazo,
+      indice_cc,
+      porcentaje_masa_grasa,
+      porcentaje_masa_muscular,
+      edad_metabolica,
+      grasa_visceral
+    `)
+    .eq('paciente_id', (ficha as any).paciente_id)
+    .order('fecha_consulta', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
   const paciente = ficha.pacientes as unknown as {
     nombre: string
     sexo: string
@@ -57,7 +71,7 @@ export default async function SeguimientoPage({ params }: PageProps) {
     empresas: { nombre: string } | null
   } | null
 
-  const fichaAny = ficha as any
+  const fichaAny = (fichaReciente ?? ficha) as any
   const pacienteCodigo: string | null = paciente?.codigo ?? null
 
   function Field({ label, value }: { label: string; value: string | null | undefined }) {
@@ -109,7 +123,7 @@ export default async function SeguimientoPage({ params }: PageProps) {
       <SeguimientoForm
         fichaId={params.id}
         sexo={paciente?.sexo ?? 'Femenino'}
-        defaultTalla={(ficha as any).talla_m ?? null}
+        defaultTalla={fichaAny.talla_m ?? null}
         fichaAnterior={{
           fecha_consulta: fichaAny.fecha_consulta ?? null,
           peso_kg: fichaAny.peso_kg ?? null,

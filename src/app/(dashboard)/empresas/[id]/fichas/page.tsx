@@ -21,18 +21,29 @@ export default async function EmpresaFichasPage({ params }: PageProps) {
 
   if (!empresa) notFound()
 
+  // Traemos todas las fichas de los pacientes de la empresa (no solo la inicial)
+  // ordenadas de la más reciente a la más antigua, para quedarnos con la ÚLTIMA
+  // consulta de cada paciente como fila representativa.
   const { data } = await supabase
     .from('fichas_nutricionales')
     .select(`
-      id, fecha_consulta, imc, riesgo_metabolico, tipo,
+      id, fecha_consulta, imc, riesgo_metabolico, tipo, paciente_id, created_at,
       pacientes!inner( nombre, codigo, empresa_id, empresas( nombre ) )
     `)
     .eq('pacientes.empresa_id', params.id)
-    .eq('tipo', 'inicial')
     .order('fecha_consulta', { ascending: false })
-    .limit(500)
+    .order('created_at', { ascending: false })
+    .limit(2000)
 
-  const fichas = (data ?? []).map((f) => {
+  // Como las filas vienen ordenadas de más reciente a más antigua, la primera que
+  // aparece por paciente es su última consulta.
+  const latestByPaciente = new Map<string, NonNullable<typeof data>[number]>()
+  for (const f of data ?? []) {
+    const pid = (f as any).paciente_id as string
+    if (!latestByPaciente.has(pid)) latestByPaciente.set(pid, f)
+  }
+
+  const fichas = Array.from(latestByPaciente.values()).map((f) => {
     const p = f.pacientes as unknown as {
       nombre: string
       codigo?: string | null

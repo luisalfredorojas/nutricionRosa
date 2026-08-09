@@ -160,11 +160,36 @@ export async function DELETE(
       return NextResponse.json({ error: 'No autenticado. Vuelve a iniciar sesión.' }, { status: 401 })
     }
 
-    // Desvincula seguimientos hijos antes de borrar la ficha padre.
-    await supabase
+    // Si la ficha a borrar tiene seguimientos colgando (es la raíz/inicial),
+    // promovemos el seguimiento más antiguo a nueva ficha inicial y
+    // re-vinculamos el resto a ella. De lo contrario quedarían fichas huérfanas
+    // (sin padre pero con tipo 'seguimiento'), invisibles en los listados que
+    // filtran por tipo='inicial'.
+    const { data: hijos } = await supabase
       .from('fichas_nutricionales')
-      .update({ ficha_padre_id: null })
+      .select('id')
       .eq('ficha_padre_id', params.id)
+      .order('fecha_consulta', { ascending: true })
+      .order('created_at', { ascending: true })
+
+    const hijosList = (hijos ?? []) as { id: string }[]
+    if (hijosList.length > 0) {
+      const nuevaRaizId = hijosList[0].id
+      // El más antiguo pasa a ser la nueva ficha inicial.
+      await supabase
+        .from('fichas_nutricionales')
+        .update({ ficha_padre_id: null, tipo: 'inicial' } as any)
+        .eq('id', nuevaRaizId)
+
+      // El resto de seguimientos se re-vinculan a la nueva raíz.
+      const restantes = hijosList.slice(1).map((h) => h.id)
+      if (restantes.length > 0) {
+        await supabase
+          .from('fichas_nutricionales')
+          .update({ ficha_padre_id: nuevaRaizId } as any)
+          .in('id', restantes)
+      }
+    }
 
     const { data: deleted, error } = await supabase
       .from('fichas_nutricionales')

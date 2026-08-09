@@ -28,7 +28,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Fetch parent ficha to get paciente_id and sexo
     const { data: fichapadre, error: fichapadreError } = await supabase
       .from('fichas_nutricionales')
-      .select('paciente_id, pacientes ( sexo )')
+      .select('paciente_id, ficha_padre_id, pacientes ( sexo )')
       .eq('id', params.id)
       .single()
 
@@ -40,6 +40,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const pacienteId = fichapadre.paciente_id
+    // El modelo es plano: todos los seguimientos cuelgan de la ficha inicial
+    // (raíz). Si se está creando el seguimiento desde otro seguimiento, usamos su
+    // ficha_padre_id como raíz para no romper el historial.
+    const rootFichaId = (fichapadre as any).ficha_padre_id ?? params.id
     const paciente = fichapadre.pacientes as unknown as { sexo: string } | null
     const sexo = (paciente?.sexo ?? data.sexo ?? 'Femenino') as SexoType
 
@@ -60,7 +64,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .from('fichas_nutricionales')
       .insert({
         paciente_id: pacienteId,
-        ficha_padre_id: params.id,
+        ficha_padre_id: rootFichaId,
         tipo: 'seguimiento',
         fecha_consulta: data.fecha_consulta ?? (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })(),
         motivo_consulta: data.motivo_consulta ?? null,

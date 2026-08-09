@@ -9,11 +9,12 @@ export default async function PrivadosPage() {
   const { data } = await supabase
     .from('fichas_nutricionales')
     .select(`
-      id, fecha_consulta, imc, riesgo_metabolico, paciente_id, tipo,
+      id, fecha_consulta, imc, riesgo_metabolico, paciente_id, tipo, created_at,
       pacientes!inner( nombre, codigo, tipo_paciente )
     `)
     .eq('pacientes.tipo_paciente', 'privado')
     .order('fecha_consulta', { ascending: true })
+    .order('created_at', { ascending: true })
     .limit(1000)
 
   type Row = {
@@ -28,24 +29,20 @@ export default async function PrivadosPage() {
 
   const rows = (data ?? []) as unknown as Row[]
 
-  // Group by paciente_id
+  // Group by paciente_id. La fila representativa es la ÚLTIMA consulta del
+  // paciente (las filas vienen ordenadas por fecha_consulta ascendente, así que
+  // la última que vemos por paciente es la más reciente).
   const byPaciente = new Map<string, { original: Row; count: number }>()
 
   for (const r of rows) {
-    const rAny = r as any
     const existing = byPaciente.get(r.paciente_id)
     if (!existing) {
       byPaciente.set(r.paciente_id, { original: r, count: 1 })
     } else {
       existing.count += 1
-      // Prefer a ficha with tipo === 'inicial'
-      const existingTipo = (existing.original as any).tipo
-      if (rAny.tipo === 'inicial' && existingTipo !== 'inicial') {
-        existing.original = r
-      } else if (existingTipo !== 'inicial') {
-        // Otherwise keep oldest (rows are ordered asc, so existing is already older)
-        // no-op
-      }
+      // Al estar ordenadas asc, cada fila posterior es más reciente → se queda
+      // como representante.
+      existing.original = r
     }
   }
 

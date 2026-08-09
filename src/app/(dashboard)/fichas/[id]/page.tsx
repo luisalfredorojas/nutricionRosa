@@ -46,14 +46,18 @@ export default async function FichaDetailPage({ params }: PageProps) {
 
   if (!ficha) notFound()
 
-  // Fetch seguimientos (fichas where ficha_padre_id = this ficha's id)
+  const pacienteId: string = (ficha as any).paciente_id ?? ''
+
+  // Seguimientos del paciente (independiente de la jerarquía padre/hijo),
+  // excluyendo la ficha que se está viendo. Así el historial se ve completo
+  // tanto si abrimos la ficha inicial como la última consulta.
   const { data: seguimientos } = await supabase
     .from('fichas_nutricionales')
     .select('id, fecha_consulta, peso_kg, imc, dx_grasa, riesgo_metabolico')
-    .eq('ficha_padre_id' as any, params.id)
+    .eq('paciente_id', pacienteId)
+    .eq('tipo' as any, 'seguimiento')
+    .neq('id', params.id)
     .order('fecha_consulta', { ascending: false })
-
-  const pacienteId: string = (ficha as any).paciente_id ?? ''
 
   // Todas las fichas del paciente (inicial + controles) ordenadas de la más
   // antigua a la más reciente, para exportarlas juntas en un solo PDF.
