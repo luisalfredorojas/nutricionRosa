@@ -15,6 +15,8 @@ interface Row {
   circunferencia_cintura: number | null
   circunferencia_cadera: number | null
   circunferencia_brazo: number | null
+  edad_metabolica: number | null
+  grasa_visceral: number | null
   fecha_nacimiento: string | null
 }
 
@@ -57,6 +59,8 @@ export function TablaComparativa({ pacienteId, currentFichaId }: TablaComparativ
           circunferencia_cintura: f.circunferencia_cintura ?? null,
           circunferencia_cadera: f.circunferencia_cadera ?? null,
           circunferencia_brazo: f.circunferencia_brazo ?? null,
+          edad_metabolica: f.edad_metabolica ?? null,
+          grasa_visceral: f.grasa_visceral ?? null,
           fecha_nacimiento: f.pacientes?.fecha_nacimiento ?? null,
         }))
         // Sort ASC by fecha_consulta
@@ -95,7 +99,7 @@ export function TablaComparativa({ pacienteId, currentFichaId }: TablaComparativ
   return (
     <div id={`tabla-comparativa-${pacienteId}`} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[820px]">
+        <table className="w-full text-sm min-w-[1000px]">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
               <th className="text-left px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Fecha consulta</th>
@@ -107,6 +111,8 @@ export function TablaComparativa({ pacienteId, currentFichaId }: TablaComparativ
               <th className="text-center px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Cintura (cm)</th>
               <th className="text-center px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Cadera (cm)</th>
               <th className="text-center px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Brazo (cm)</th>
+              <th className="text-center px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Edad metabólica</th>
+              <th className="text-center px-4 py-3 text-xs font-semibold text-rosa-600 uppercase tracking-wide">Grasa visceral</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -147,6 +153,12 @@ export function TablaComparativa({ pacienteId, currentFichaId }: TablaComparativ
                   </td>
                   <td className="px-4 py-2.5 text-center text-rosa-700">
                     {formatDecimal(r.circunferencia_brazo, 1)}
+                  </td>
+                  <td className="px-4 py-2.5 text-center text-rosa-700">
+                    {r.edad_metabolica ?? '—'}
+                  </td>
+                  <td className="px-4 py-2.5 text-center text-rosa-700">
+                    {formatDecimal(r.grasa_visceral, 1)}
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     {!highlight && (
